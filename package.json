@@ -1,7 +1,7 @@
 {
   "name": "seneca-repl",
   "description": "Seneca plugin: seneca-repl",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
