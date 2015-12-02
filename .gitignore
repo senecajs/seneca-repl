@@ -1,0 +1,14 @@
+.idea
+*.iml
+npm-debug.log
+node_modules
+results.tap
+results.xml
+.DS_Store
+*/.DS_Store
+*/*/.DS_Store
+._*
+*/._*
+*/*/._*
+coverage.*
+.settings
