@@ -13,41 +13,44 @@ var internals = {
   name: 'seneca-repl',
   defaults: {
     port: 30303,
-    host: '127.0.0.1'
+    host: '127.0.0.1',
+    depth: 11
   }
 }
 
-module.exports = function (options) {
+module.exports = function (opts) {
   var seneca = this
 
-  var settings = seneca.util.deepextend(internals.defaults, options)
-  var repl = internals.repl(seneca, settings)
+  var options = seneca.util.deepextend(internals.defaults, opts)
+  var repl = internals.repl(seneca, options)
 
   seneca.decorate('repl', repl)       // Open a REPL on a local port.
+
+  // REMOVE in Seneca 2.x.x
   seneca.decorate('startrepl', repl)
 
   return {
     name: internals.name,
-    options: settings
+    options: options
   }
 }
 
-internals.repl = function (seneca, settings) {
+internals.repl = function (seneca, options) {
   return function api_repl () {
     var self = this
 
-    var in_opts = _.isObject(arguments[0]) ? in_opts : {}
+    var in_opts = _.isObject(arguments[0]) ? arguments[0] : {}
     in_opts.port = _.isNumber(arguments[0]) ? arguments[0] : in_opts.port
     in_opts.host = _.isString(arguments[1]) ? arguments[1] : in_opts.host
 
-    var repl_opts = seneca.util.deepextend(settings, in_opts)
+    var repl_opts = seneca.util.deepextend(options, in_opts)
     Net.createServer(function (socket) {
       socket.on('error', function (err) {
         sd.log.error('repl-socket', err)
       })
 
       var r = Repl.start({
-        prompt: 'seneca ' + seneca.id + '> ',
+        prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
         input: socket,
         output: socket,
         terminal: false,
@@ -86,7 +89,8 @@ internals.repl = function (seneca, settings) {
       }
 
       sd.on_act_out = function on_act_out (actmeta, out) {
-        out = (out && out.entity$) ? out : Util.inspect(sd.util.clean(out))
+        out = (out && out.entity$) ? out
+          : Util.inspect(sd.util.clean(out), {depth: options.depth})
 
         var cur_index = act_index_map[actmeta.id]
         socket.write('OUT ' + fmt_index(cur_index) +
@@ -101,13 +105,31 @@ internals.repl = function (seneca, settings) {
 
       r.context.s = r.context.seneca = sd
 
-      function evaluate (cmd, context, filename, callback) {
+      function evaluate (cmdtext, context, filename, callback) {
         var result
 
-        cmd = cmd.replace(/[\r\n]+$/, '')
-
-        if (cmd === 'quit' || cmd === 'exit') {
+        var m = cmdtext.match(/^(\S+)/)
+        // cmd = cmd.replace(/[\r\n]+$/, '')
+        var cmd = m && m[1]
+        if ('quit' === cmd || 'exit' === cmd) {
           socket.end()
+        }
+        else if ('set' === cmd) {
+          m = cmdtext.match(/^(\S+)\s+(\S+)\s+(\S+)/)
+
+          if (m) {
+            var setopt = parse_option(m[2], Jsonic('$:' + m[3]).$)
+            context.s.options(setopt)
+
+            if (setopt.repl) {
+              options = context.s.util.deepextend(options, setopt.repl)
+            }
+
+            return callback()
+          }
+          else {
+            return callback('ERROR: expected set <option> <value>')
+          }
         }
 
         try {
@@ -116,8 +138,7 @@ internals.repl = function (seneca, settings) {
             if (err) {
               return callback(err.message)
             }
-
-            return callback(null, (out && out.entity$) ? out : seneca.util.clean(out))
+            return callback()
           })
         }
         catch (e) {
@@ -140,4 +161,24 @@ internals.repl = function (seneca, settings) {
 
     return self
   }
+}
+
+function parse_option (optpath, val) {
+  optpath += '.'
+
+  var part = /([^\.]+)\.+/g
+  var m
+  var out = {}
+  var cur = out
+  var po = out
+  var pn
+
+  while (null != (m = part.exec(optpath))) {
+    cur[m[1]] = {}
+    po = cur
+    pn = m[1]
+    cur = cur[m[1]]
+  }
+  po[pn] = val
+  return out
 }
