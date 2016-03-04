@@ -73,9 +73,17 @@ describe('seneca-repl', function () {
               }
               else if (state === 2) {
                 expect(result).to.contain('bar')
-                sock.write('seneca.quit\n')
+                sock.write('list\n')
               }
               else if (state === 3) {
+                expect(result).to.contain("{ role: 'seneca', stats: 'true' }")
+                sock.write('role:seneca,stats:true\n')
+              }
+              else if (state === 4) {
+                expect(result).to.contain('OUT 000000')
+                sock.write('seneca.quit\n')
+              }
+              else if (state === 5) {
                 expect(result).to.contain('seneca')
                 done()
               }

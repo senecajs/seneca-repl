@@ -5,7 +5,7 @@
   "main": "repl.js",
   "license": "MIT",
   "scripts": {
-    "test": "lab -v -L -t 78"
+    "test": "lab -v -L -t 80"
   },
   "keywords": [
     "seneca",

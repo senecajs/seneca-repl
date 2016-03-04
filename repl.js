@@ -14,7 +14,10 @@ var internals = {
   defaults: {
     port: 30303,
     host: '127.0.0.1',
-    depth: 11
+    depth: 11,
+    alias: {
+      list: 'seneca.list()'
+    }
   }
 }
 
@@ -42,6 +45,8 @@ internals.repl = function (seneca, options) {
     var in_opts = _.isObject(arguments[0]) ? arguments[0] : {}
     in_opts.port = _.isNumber(arguments[0]) ? arguments[0] : in_opts.port
     in_opts.host = _.isString(arguments[1]) ? arguments[1] : in_opts.host
+
+    var alias = _.extend(options.alias || {}, in_opts.alias)
 
     var repl_opts = seneca.util.deepextend(options, in_opts)
     Net.createServer(function (socket) {
@@ -109,7 +114,6 @@ internals.repl = function (seneca, options) {
         var result
 
         var m = cmdtext.match(/^(\S+)/)
-        // cmd = cmd.replace(/[\r\n]+$/, '')
         var cmd = m && m[1]
         if ('quit' === cmd || 'exit' === cmd) {
           socket.end()
@@ -131,17 +135,40 @@ internals.repl = function (seneca, options) {
             return callback('ERROR: expected set <option> <value>')
           }
         }
+        else if ('alias' === cmd) {
+          m = cmdtext.match(/^(\S+)\s+(\S+)\s+(.+)[\r\n]+$/)
 
-        try {
-          var args = Jsonic(cmd)
-          context.s.act(args, function (err, out) {
-            if (err) {
-              return callback(err.message)
-            }
+          if (m) {
+            alias[m[2]] = m[3]
             return callback()
-          })
+          }
+          else {
+            return callback('ERROR: expected alias <name> <command>')
+          }
         }
-        catch (e) {
+        else if (alias[cmd]) {
+          cmd = alias[cmd]
+        }
+
+        if (!execute_action(cmd)) {
+          execute_script(cmd)
+        }
+
+
+        function execute_action (cmd) {
+          try {
+            var args = Jsonic(cmd)
+            context.s.act(args, function (err, out) {
+              callback(err ? err.message : null)
+            })
+            return true
+          }
+          catch (e) {
+            return false
+          }
+        }
+
+        function execute_script (cmd) {
           try {
             var script = Vm.createScript(cmd, {
               filename: filename,
