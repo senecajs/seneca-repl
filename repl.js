@@ -21,7 +21,7 @@ var internals = {
   }
 }
 
-module.exports = function (opts) {
+module.exports = function repl (opts) {
   var seneca = this
 
   var options = seneca.util.deepextend(internals.defaults, opts)
