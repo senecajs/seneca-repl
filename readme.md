@@ -6,6 +6,8 @@
 [![Build Status][travis-badge]][travis-url]
 [![Gitter][gitter-badge]][gitter-url]
 
+### Seneca compatibility
+Supports Seneca versions **1.x** and **2.x**
 
 ## install
 
@@ -15,7 +17,6 @@ To install, simply use npm. Remember you will need to install [Seneca.js][] if y
 > npm install seneca
 > npm install seneca-repl
 ```
-
 
 ## usage
 
@@ -30,7 +31,6 @@ seneca.ready(function () {
 })
 ```
 
-
 ## test
 
 To run tests, simply use npm:
@@ -38,7 +38,6 @@ To run tests, simply use npm:
 ```sh
 > npm run test
 ```
-
 
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [travis-badge]: https://travis-ci.org/senecajs/seneca-repl.svg
