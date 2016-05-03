@@ -2,14 +2,15 @@
 > A [Seneca.js][] plugin
 
 # seneca-repl
-
+[![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
+[![Dependency Status][david-badge]][david-url]
 [![Gitter][gitter-badge]][gitter-url]
 
 ### Seneca compatibility
 Supports Seneca versions **1.x** and **2.x**
 
-## install
+## Install
 
 To install, simply use npm. Remember you will need to install [Seneca.js][] if you haven't already.
 
@@ -18,7 +19,7 @@ To install, simply use npm. Remember you will need to install [Seneca.js][] if y
 > npm install seneca-repl
 ```
 
-## usage
+## Usage
 
 ```js
 var Seneca = require('seneca')
@@ -31,7 +32,11 @@ seneca.ready(function () {
 })
 ```
 
-## test
+## Contributing
+The [Senecajs org][] encourage open participation. If you feel you can help in any way, be it with
+documentation, examples, extra testing, or new features please get in touch.
+
+## Test
 
 To run tests, simply use npm:
 
@@ -39,8 +44,18 @@ To run tests, simply use npm:
 > npm run test
 ```
 
+## License
+Copyright (c) 2015-2016, Senecajs and other contributors.
+Licensed under [MIT][].
+
+[MIT]: ./LICENSE.txt
 [Seneca.js]: https://www.npmjs.com/package/seneca
+[Senecajs org]: https://github.com/senecajs/
 [travis-badge]: https://travis-ci.org/senecajs/seneca-repl.svg
 [travis-url]: https://travis-ci.org/senecajs/seneca-repl
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-url]: https://gitter.im/senecajs/seneca
+[npm-badge]: https://img.shields.io/npm/v/seneca-repl.svg
+[npm-url]: https://npmjs.com/package/seneca-repl
+[david-badge]: https://david-dm.org/senecajs/seneca-repl.svg
+[david-url]: https://david-dm.org/senecajs/seneca-repl
