@@ -5,7 +5,8 @@
   "main": "repl.js",
   "license": "MIT",
   "scripts": {
-    "test": "lab -v -L -t 80"
+    "test": "lab -v -L -t 80 $LAB_FLAGS",
+    "test:node6": "LAB_FLAGS='--leaks' && npm test"
   },
   "keywords": [
     "seneca",
