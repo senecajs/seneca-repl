@@ -5,6 +5,7 @@
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
 [![Dependency Status][david-badge]][david-url]
+[![Coveralls][BadgeCoveralls]][Coveralls]
 [![Gitter][gitter-badge]][gitter-url]
 
 ### Seneca compatibility
@@ -59,3 +60,5 @@ Licensed under [MIT][].
 [npm-url]: https://npmjs.com/package/seneca-repl
 [david-badge]: https://david-dm.org/senecajs/seneca-repl.svg
 [david-url]: https://david-dm.org/senecajs/seneca-repl
+[Coveralls]: https://coveralls.io/github/senecajs/seneca-repl?branch=master
+[BadgeCoveralls]: https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=master
