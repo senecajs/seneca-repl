@@ -1,4 +1,4 @@
-sudo: false
+sudo: false,
 language: node_js
 
 env:
@@ -6,9 +6,17 @@ env:
   - SENECA_VER=@2.x.x
 
 node_js:
-  - '4'
-  - '5'
   - '6'
+  - '5'
+  - '4'
 
 before_script:
+  - npm uninstall seneca
   - npm install seneca$SENECA_VER
+
+cache:
+  directories:
+    - node_modules
+
+after_script:
+  - npm run coveralls

@@ -26,6 +26,7 @@
   "devDependencies": {
     "code": "^3.0.2",
     "eslint-config-seneca": "^3.0.0",
+    "eslint-plugin-hapi": "^4.0.0",
     "eslint-plugin-standard": "^2.0.0",
     "lab": "^11.0.0",
     "seneca": "plugin"
