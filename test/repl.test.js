@@ -31,10 +31,10 @@ describe('seneca-repl', function () {
 
     var fn = function () {
       seneca
-        .use(SenecaRepl, {host: '0.0.0.0', port: 60606, depth: 1})
+        .use(SenecaRepl, {port: 60606, depth: 1})
         .ready(function () {
-          this.repl(60606, '0.0.0.0')
-          this.repl({port: 50505, host: '0.0.0.0'})
+          this.repl(60606)
+          this.repl({port: 50505})
         })
     }
 
@@ -89,10 +89,9 @@ describe('seneca-repl', function () {
               }
 
               state++
-            }, 100)
+            }, 3000)
           })
         })
     })
   })
 })
-
