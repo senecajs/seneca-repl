@@ -21,18 +21,21 @@
   },
   "dependencies": {
     "jsonic": "0.2.2",
-    "lodash": "4.15.0"
+    "lodash": "4.14.2"
   },
   "devDependencies": {
-    "code": "^3.0.2",
-    "eslint-config-seneca": "^3.0.0",
-    "eslint-plugin-standard": "^2.0.0",
-    "lab": "^11.0.0",
+    "code": "3.0.x",
+    "eslint-config-seneca": "3.x.x",
+    "eslint-plugin-standard": "2.x.x",
+    "lab": "11.0.x",
     "seneca": "plugin"
   },
   "files": [
     "LICENSE.txt",
     "README.md",
     "repl.js"
+  ],
+  "pre-commit": [
+    "test"
   ]
 }
