@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "code": "3.0.x",
+    "coveralls": "2.11.x",
     "eslint-config-seneca": "3.x.x",
     "eslint-plugin-hapi": "4.x.x",
     "eslint-plugin-standard": "2.x.x",
