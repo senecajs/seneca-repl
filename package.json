@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "jsonic": "0.2.2",
-    "lodash": "4.14.2"
+    "lodash": "4.15.0"
   },
   "devDependencies": {
     "code": "3.0.x",
