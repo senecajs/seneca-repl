@@ -8,7 +8,7 @@
 [![Gitter][gitter-badge]][gitter-url]
 
 ### Seneca compatibility
-Supports Seneca versions **1.x** and **2.x**
+Supports Seneca versions **1.x** and **2.x** and **3.x**
 
 ## Install
 
