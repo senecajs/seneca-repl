@@ -47,39 +47,52 @@ describe('seneca-repl', function () {
     }
 
     expect(fn).to.not.throw()
+
     done()
   })
 
   it('simple test - accepts local connections and responds to commands', function (done) {
     internals.availablePort(function (port) {
-      var seneca = Seneca({ repl: { port: port }, log: 'silent' })
-      seneca.repl()
-      var result = ''
+      function replTest (si) {
+        si.repl()
+        var result = ''
 
-      setTimeout(function () {
-        var sock = Net.connect(port)
-        var first = true
+        setTimeout(function () {
+          var sock = Net.connect(port)
+          var first = true
 
-        sock.on('data', function (data) {
-          result += data.toString('ascii')
+          sock.on('data', function (data) {
+            result += data.toString('ascii')
 
-          expect(result).to.contain('seneca')
-          if (first) {
-            setTimeout(function () {
-              first = false
+            expect(result).to.contain('seneca')
+            if (first) {
+              setTimeout(function () {
+                first = false
+                expect(result).to.contain('->')
+                sock.write('this\n')
+              }, 50)
+            }
+            else {
               expect(result).to.contain('->')
-              sock.write('this\n')
-            }, 50)
-          }
-          else {
-            expect(result).to.contain('->')
-            sock.write('seneca.quit\n')
-            sock.destroy()
-            sock.removeAllListeners('data')
-            done()
-          }
-        }, 100)
-      })
+              sock.write('seneca.quit\n')
+              sock.destroy()
+              sock.removeAllListeners('data')
+              done()
+            }
+          }, 100)
+        })
+      }
+
+      var seneca = Seneca({ repl: { port: port }, log: 'silent' })
+      if (seneca.version >= '3.0.0') {
+        seneca.use(SenecaRepl, { port: port })
+        .ready(function () {
+          replTest(seneca)
+        })
+      }
+      else {
+        replTest(seneca)
+      }
     })
   })
 
