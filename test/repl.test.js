@@ -53,10 +53,8 @@ describe('seneca-repl', function () {
 
   it('simple test - accepts local connections and responds to commands', function (done) {
     internals.availablePort(function (port) {
-      var seneca = Seneca({ repl: { port: port }, log: 'silent' })
-      seneca.use(SenecaRepl, { port: port })
-      .ready(function () {
-        seneca.repl()
+      function replTest (si) {
+        si.repl()
         var result = ''
 
         setTimeout(function () {
@@ -83,7 +81,18 @@ describe('seneca-repl', function () {
             }
           }, 100)
         })
-      })
+      }
+
+      var seneca = Seneca({ repl: { port: port }, log: 'silent' })
+      if (seneca.version >= '3.0.0') {
+        seneca.use(SenecaRepl, { port: port })
+        .ready(function () {
+          replTest(seneca)
+        })
+      }
+      else {
+        replTest(seneca)
+      }
     })
   })
 
