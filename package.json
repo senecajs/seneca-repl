@@ -32,7 +32,7 @@
     "lab": "11.0.x",
     "pre-commit": "1.1.x",
     "seneca": "plugin",
-    "seneca-basic": "0.4.x"
+    "seneca-basic": "0.5.x"
   },
   "files": [
     "LICENSE.txt",
