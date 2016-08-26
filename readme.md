@@ -48,7 +48,7 @@ To run tests, simply use npm:
 Copyright (c) 2015-2016, Senecajs and other contributors.
 Licensed under [MIT][].
 
-[MIT]: ./LICENSE.txt
+[MIT]: ./LICENSE
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [Senecajs org]: https://github.com/senecajs/
 [travis-badge]: https://travis-ci.org/senecajs/seneca-repl.svg
