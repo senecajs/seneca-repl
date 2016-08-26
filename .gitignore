@@ -13,3 +13,5 @@ results.xml
 coverage.*
 .settings
 *~
+
+docs/annotated
