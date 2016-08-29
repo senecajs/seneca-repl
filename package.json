@@ -14,9 +14,9 @@
     "Dean McDonnell (https://github.com/mcdonnelldean)"
   ],
   "scripts": {
-    "test": "lab -v -P test -L -t 55 -c",
+    "test": "lab -v -P test -L -t 70 -c",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "coverage": "lab -v -P test -L -t 80 -r html > docs/coverage.html",
+    "coverage": "lab -v -P test -L -t 70 -r html > docs/coverage.html",
     "annotate": "docco repl.js -o docs/annotated"
   },
   "keywords": [
