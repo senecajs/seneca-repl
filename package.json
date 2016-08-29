@@ -4,8 +4,17 @@
   "version": "0.3.0",
   "main": "repl.js",
   "license": "MIT",
+  "author": "Wyatt Preul (https://github.com/geek)",
+  "contributors": [
+    "Mihai Dima (https://github.com/mihaidma)",
+    "Emer Rutherford (https://github.com/eeswr)",
+    "Richard Rodger (https://github.com/rjrodger)",
+    "Wyatt Preul (https://github.com/geek)",
+    "Shane Lacey (https://github.com/shanel262)",
+    "Dean McDonnell (https://github.com/mcdonnelldean)"
+  ],
   "scripts": {
-    "test": "lab -v -P test -L -t 55",
+    "test": "lab -v -P test -L -t 55 -c",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -L -t 80 -r html > docs/coverage.html",
     "annotate": "docco repl.js -o docs/annotated"
