@@ -146,7 +146,7 @@ internals.repl = function (seneca, options) {
           return callback()
         }
         else {
-          return callback('ERROR: expected set <option> <value>')
+          return callback('ERROR: expected set <path> <value>')
         }
       }
       else if ('alias' === cmd) {
