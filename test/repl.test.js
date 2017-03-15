@@ -100,12 +100,15 @@ describe('seneca-repl', function () {
           var sock = Net.connect(port)
           var state = 0
 
+          /*
           sock.on('readable', function () {
             var buffer = sock.read()
             if (!buffer) {
               return
             }
+           */
 
+          sock.on('data', function (buffer) {
             var result = buffer.toString('ascii')
 
             if (state === 0) {
