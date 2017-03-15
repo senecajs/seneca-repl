@@ -53,7 +53,6 @@ describe('seneca-repl', function () {
   it('simple test - accepts local connections and responds to commands', function (done) {
     internals.availablePort(function (port) {
       function replTest (si) {
-        // si.repl()
         var result = ''
 
         setTimeout(function () {
@@ -82,27 +81,21 @@ describe('seneca-repl', function () {
         })
       }
 
-      var seneca = Seneca({ repl: { port: port }, log: 'silent' })
-      if (seneca.version >= '3.0.0') {
-        seneca.use(SenecaRepl, { port: port })
+      var seneca = Seneca().test(done)
+      seneca.use(SenecaRepl, { port: port })
         .ready(function () {
           replTest(seneca)
         })
-      }
-      else {
-        replTest(seneca)
-      }
     })
   })
 
-  it.skip('accepts local connections and responds to commands', function (done) {
+  it('accepts local connections and responds to commands', function (done) {
     internals.availablePort(function (port) {
-      var seneca = Seneca({ log: 'all', default_plugins: { repl: false } })
+      var seneca = Seneca()
       seneca
+      .test(done)
       .use(SenecaRepl, { port: port })
       .ready(function () {
-        seneca.repl()
-
         setTimeout(function () {
           var sock = Net.connect(port)
           var state = 0
@@ -124,7 +117,7 @@ describe('seneca-repl', function () {
               state++
               expect(result).to.contain('{')
               sock.write('set foo.bar 1\n')
-              sock.write('this.options().foo\n')
+              sock.write('seneca.options().foo\n')
             }
             else if (state === 2) {
               state++
@@ -133,13 +126,13 @@ describe('seneca-repl', function () {
             }
             else if (state === 3) {
               state++
-              expect(result).to.contain("{ role: 'seneca', stats: 'true' }")
-              sock.write('role:seneca,stats:true\n')
+              expect(result).to.contain("{ cmd: 'close', role: 'seneca' }")
+              sock.write('stats\n')
             }
             else if (state === 4) {
               state++
-              expect(result).to.contain('OUT 000000')
-              sock.write('seneca.quit\n')
+              expect(result).to.contain('start')
+              sock.write('seneca.quit()\n')
             }
             else if (state === 5) {
               state++
