@@ -89,7 +89,7 @@ describe('seneca-repl', function () {
     })
   })
 
-  it('accepts local connections and responds to commands', function (done) {
+  it('accepts local connections and responds to commands', {timeout: 9999}, function (done) {
     internals.availablePort(function (port) {
       var seneca = Seneca()
       seneca
@@ -98,45 +98,50 @@ describe('seneca-repl', function () {
       .ready(function () {
         setTimeout(function () {
           var sock = Net.connect(port)
-          var state = 0
 
           var result
           sock.on('data', function (buffer) {
             result += buffer.toString('ascii')
+          })
 
-            if (state === 0) {
-              state++
-              expect(result).to.contain('seneca')
-              sock.write('console.log(this)\n')
-            }
-            else if (state === 1) {
-              state++
-              expect(result).to.contain('{')
-              sock.write('set foo.bar 1\n')
-              sock.write('seneca.options().foo\n')
-            }
-            else if (state === 2) {
-              state++
-              expect(result).to.contain('bar')
-              sock.write('list\n')
-            }
-            else if (state === 3) {
-              state++
-              expect(result).to.contain("{ cmd: 'close', role: 'seneca' }")
-              sock.write('stats\n')
-            }
-            else if (state === 4) {
-              state++
-              expect(result).to.contain('start')
-              sock.write('seneca.quit()\n')
-            }
-            else if (state === 5) {
-              state++
-              expect(result).to.contain('seneca')
-              done()
-            }
-          }, 2000)
-        })
+          setTimeout(step00, 222)
+
+          function step00 () {
+            expect(result).to.contain('seneca')
+            sock.write('console.log(this)\n')
+            setTimeout(step01, 222)
+          }
+
+          function step01 () {
+            expect(result).to.contain('{')
+            sock.write('set foo.bar 1\n')
+            sock.write('seneca.options().foo\n')
+            setTimeout(step02, 222)
+          }
+
+          function step02 () {
+            expect(result).to.contain('bar')
+            sock.write('list\n')
+            setTimeout(step03, 222)
+          }
+
+          function step03 () {
+            expect(result).to.contain("{ cmd: 'close', role: 'seneca' }")
+            sock.write('stats\n')
+            setTimeout(step04, 222)
+          }
+
+          function step04 () {
+            expect(result).to.contain('start')
+            sock.write('seneca.quit()\n')
+            setTimeout(step05, 222)
+          }
+
+          function step05 () {
+            expect(result).to.contain('seneca')
+            done()
+          }
+        }, 1111)
       })
     })
   })
