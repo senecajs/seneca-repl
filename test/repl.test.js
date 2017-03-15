@@ -34,27 +34,26 @@ describe('seneca-repl', function () {
     done()
   })
 
-  it('can be used by seneca', function (done) {
+  it('happy', function (done) {
     var seneca = Seneca({ log: 'silent', default_plugins: { repl: false } })
 
     var fn = function () {
       seneca
-      .use(SenecaRepl, {host: '0.0.0.0', port: 60606, depth: 1})
-      .ready(function () {
-        this.repl(60606, '0.0.0.0')
-        this.repl({port: 50505, host: '0.0.0.0'})
-      })
+        // .use(SenecaRepl, {host: '0.0.0.0', port: 60606, depth: 1})
+        .use('..', {host: '0.0.0.0', port: 60606, depth: 1})
+        .use('..', {host: '0.0.0.0', port: 50505, depth: 1})
+        .ready(function () {
+          done()
+        })
     }
 
     expect(fn).to.not.throw()
-
-    done()
   })
 
   it('simple test - accepts local connections and responds to commands', function (done) {
     internals.availablePort(function (port) {
       function replTest (si) {
-        si.repl()
+        // si.repl()
         var result = ''
 
         setTimeout(function () {
