@@ -78,32 +78,37 @@ internals.repl = function (seneca, options) {
       sd.log.debug('repl', err)
     })
 
-    sd.on_act_in = function on_act_in (actmeta, args) {
+    sd.on_act_in = function on_act_in (actdef, args, meta) {
+      var actid = (meta || args.meta$ || {}).id
       socket.write('IN  ' + fmt_index(act_index) +
                    ': ' + Util.inspect(sd.util.clean(args)) +
                    ' # ' +
-                   args.meta$.id + ' ' +
-                   actmeta.pattern + ' ' +
-                   actmeta.id + ' ' +
-                   actmeta.func.name + ' ' +
-                   (actmeta.callpoint ? actmeta.callpoint : '') +
+                   actid + ' ' +
+                   actdef.pattern + ' ' +
+                   actdef.id + ' ' +
+                   actdef.action + ' ' +
+                   (actdef.callpoint ? actdef.callpoint : '') +
                    '\n')
-      act_index_map[actmeta.id] = act_index
+      act_index_map[actid] = act_index
       act_index++
     }
 
-    sd.on_act_out = function on_act_out (actmeta, out) {
+    sd.on_act_out = function on_act_out (actdef, out, meta) {
+      var actid = (meta || out.meta$ || {}).id
+
       out = (out && out.entity$) ? out
         : Util.inspect(sd.util.clean(out), {depth: options.depth})
 
-      var cur_index = act_index_map[actmeta.id]
+      var cur_index = act_index_map[actid]
       socket.write('OUT ' + fmt_index(cur_index) +
                    ': ' + out + '\n')
     }
 
-    sd.on_act_err = function on_act_err (actmeta, err) {
-      if (actmeta) {
-        var cur_index = act_index_map[actmeta.id]
+    sd.on_act_err = function on_act_err (actdef, err, meta) {
+      var actid = (meta || err.meta$ || {}).id
+
+      if (actid) {
+        var cur_index = act_index_map[actid]
         socket.write('ERR ' + fmt_index(cur_index) +
                      ': ' + err.message + '\n')
       }
