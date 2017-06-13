@@ -12,6 +12,10 @@ var describe = lab.describe
 var it = lab.it
 var expect = Code.expect
 
+
+var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER,10) || 1
+
+
 describe('seneca-repl', function() {
   it('start', function(done) {
     var seneca = Seneca().test(done)
@@ -45,7 +49,7 @@ describe('seneca-repl', function() {
             first = false
             expect(result).to.contain('->')
             sock.write('this\n')
-          }, 50)
+          }, 50*tmx)
         } else {
           expect(result).to.contain('->')
           sock.write('seneca.quit\n')
@@ -57,7 +61,7 @@ describe('seneca-repl', function() {
     })
   })
 
-  it('interaction', { timeout: 9999 }, function(done) {
+  it('interaction', { timeout: 9999*tmx }, function(done) {
     Seneca({log:'silent'})
       .add('a:1', function(msg, reply) {
         reply({ x: msg.x })
@@ -135,13 +139,13 @@ describe('seneca-repl', function() {
               expect(result).to.contain(step.expect)
             }
             nextStep()
-          }, 22)
+          }, 22*tmx)
         }
 
         setTimeout(function() {
           expect(result).to.contain('seneca')
           nextStep()
-        }, 222)
+        }, 222*tmx)
       })
   })
 })
