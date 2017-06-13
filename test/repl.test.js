@@ -5,44 +5,22 @@ var Net = require('net')
 var Code = require('code')
 var Lab = require('lab')
 var Seneca = require('seneca')
-var SenecaRepl = require('..')
 
 // Shortcuts
-var lab = exports.lab = Lab.script()
+var lab = (exports.lab = Lab.script())
 var describe = lab.describe
 var it = lab.it
 var expect = Code.expect
 
-var internals = {}
+describe('seneca-repl', function() {
+  it('start', function(done) {
+    var seneca = Seneca().test(done)
 
-internals.availablePort = function (callback) {
-  var server = Net.createServer()
-  server.listen(0, function () {
-    var port = server.address().port
-    server.close(function () {
-      callback(port)
-    })
-  })
-}
-
-describe('seneca-repl', function () {
-  lab.beforeEach(function (done) {
-    process.removeAllListeners('SIGHUP')
-    process.removeAllListeners('SIGTERM')
-    process.removeAllListeners('SIGINT')
-    process.removeAllListeners('SIGBREAK')
-    done()
-  })
-
-  it('happy', function (done) {
-    var seneca = Seneca({ log: 'silent', default_plugins: { repl: false } })
-
-    var fn = function () {
+    var fn = function() {
       seneca
-        // .use(SenecaRepl, {host: '0.0.0.0', port: 60606, depth: 1})
-        .use('..', {host: '0.0.0.0', port: 60606, depth: 1})
-        .use('..', {host: '0.0.0.0', port: 50505, depth: 1})
-        .ready(function () {
+        .use('..', { host: '0.0.0.0', port: 60606, depth: 1 })
+        .use('..', { host: '0.0.0.0', port: 50505, depth: 1 })
+        .ready(function() {
           done()
         })
     }
@@ -50,99 +28,120 @@ describe('seneca-repl', function () {
     expect(fn).to.not.throw()
   })
 
-  it('simple test - accepts local connections and responds to commands', function (done) {
-    internals.availablePort(function (port) {
-      function replTest (si) {
-        var result = ''
+  it('happy', function(done) {
+    Seneca().test(done).use('..', { port: 0 }).ready(function() {
+      var port = this.export('repl/address').port
 
-        setTimeout(function () {
-          var sock = Net.connect(port)
-          var first = true
+      var result = ''
+      var sock = Net.connect(port)
+      var first = true
 
-          sock.on('data', function (data) {
-            result += data.toString('ascii')
+      sock.on('data', function(data) {
+        result += data.toString('ascii')
 
-            expect(result).to.contain('seneca')
-            if (first) {
-              setTimeout(function () {
-                first = false
-                expect(result).to.contain('->')
-                sock.write('this\n')
-              }, 50)
-            }
-            else {
-              expect(result).to.contain('->')
-              sock.write('seneca.quit\n')
-              sock.destroy()
-              sock.removeAllListeners('data')
-              done()
-            }
-          }, 100)
-        })
-      }
-
-      var seneca = Seneca().test(done)
-      seneca.use(SenecaRepl, { port: port })
-        .ready(function () {
-          replTest(seneca)
-        })
+        expect(result).to.contain('seneca')
+        if (first) {
+          setTimeout(function() {
+            first = false
+            expect(result).to.contain('->')
+            sock.write('this\n')
+          }, 50)
+        } else {
+          expect(result).to.contain('->')
+          sock.write('seneca.quit\n')
+          sock.destroy()
+          sock.removeAllListeners('data')
+          done()
+        }
+      })
     })
   })
 
-  it('accepts local connections and responds to commands', {timeout: 9999}, function (done) {
-    internals.availablePort(function (port) {
-      var seneca = Seneca()
-      seneca
-      .test(done)
-      .use(SenecaRepl, { port: port })
-      .ready(function () {
-        setTimeout(function () {
-          var sock = Net.connect(port)
-
-          var result
-          sock.on('data', function (buffer) {
-            result += buffer.toString('ascii')
-          })
-
-          setTimeout(step00, 222)
-
-          function step00 () {
-            expect(result).to.contain('seneca')
-            sock.write('console.log(this)\n')
-            setTimeout(step01, 222)
-          }
-
-          function step01 () {
-            expect(result).to.contain('{')
-            sock.write('set foo.bar 1\n')
-            sock.write('seneca.options().foo\n')
-            setTimeout(step02, 222)
-          }
-
-          function step02 () {
-            expect(result).to.contain('bar')
-            sock.write('list\n')
-            setTimeout(step03, 222)
-          }
-
-          function step03 () {
-            expect(result).to.contain("{ cmd: 'close', role: 'seneca' }")
-            sock.write('stats\n')
-            setTimeout(step04, 222)
-          }
-
-          function step04 () {
-            expect(result).to.contain('start')
-            sock.write('seneca.quit()\n')
-            setTimeout(step05, 222)
-          }
-
-          function step05 () {
-            expect(result).to.contain('seneca')
-            done()
-          }
-        }, 1111)
+  it('interaction', { timeout: 9999 }, function(done) {
+    Seneca({log:'silent'})
+      .add('a:1', function(msg, reply) {
+        reply({ x: msg.x })
       })
-    })
+      .add('e:1', function(msg, reply) {
+        reply(new Error('eek'))
+      })
+      .use('..', { port: 0 })
+      .ready(function() {
+        var port = this.export('repl/address').port
+
+        var sock = Net.connect(port)
+
+        var result
+        sock.on('data', function(buffer) {
+          result += buffer.toString('ascii')
+        })
+
+        var conversation = [
+          {
+            send: 'console.log(this)\n',
+            expect: '{'
+          },
+          {
+            send: 'set foo.bar 1\nseneca.options().foo\n',
+            expect: 'bar'
+          },
+          {
+            send: 'list\n',
+            expect: "{ cmd: 'close', role: 'seneca' }"
+          },
+          {
+            send: 'stats\n',
+            expect: 'start'
+          },
+          {
+            send: 'list\n',
+            expect: "role: 'seneca'"
+          },
+          {
+            send: 'a:1,x:2\n',
+            expect: 'x: 2'
+          },
+          {
+            send: 'last\n',
+            expect: 'x: 2'
+          },
+          {
+            send: 'alias a1x3 a:1,x:3\n',
+            expect: 'seneca'
+          },
+          {
+            send: 'a1x3\n',
+            expect: 'x: 3'
+          },
+          {
+            send: 'e:1\n',
+            expect: 'eek'
+          }
+        ]
+
+        sock.write('seneca.quit()\n')
+
+        function nextStep() {
+          var step = conversation.shift()
+          if (!step) {
+            return done()
+          }
+
+          result = ''
+
+          sock.write(step.send)
+          setTimeout(function() {
+            if (step.expect) {
+              expect(result).to.contain(step.expect)
+            }
+            nextStep()
+          }, 22)
+        }
+
+        setTimeout(function() {
+          expect(result).to.contain('seneca')
+          nextStep()
+        }, 222)
+      })
   })
 })

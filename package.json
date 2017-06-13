@@ -14,10 +14,11 @@
     "Dean McDonnell (https://github.com/mcdonnelldean)"
   ],
   "scripts": {
-    "test": "lab -v -P test -L -t 70 -c",
+    "test": "lab -v -P test -L -t 80 -c",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "coverage": "lab -v -P test -L -t 70 -r html > docs/coverage.html",
-    "annotate": "docco repl.js -o docs/annotated"
+    "coverage": "lab -v -P test -L -t 80 -r html > docs/coverage.html",
+    "annotate": "docco repl.js -o docs/annotated",
+    "prettier": "prettier --write --no-semi --single-quote *.js lib/*.js test/*.js"
   },
   "keywords": [
     "seneca",
@@ -30,17 +31,16 @@
   },
   "dependencies": {
     "jsonic": "0.2.2",
-    "lodash": "4.15.0"
+    "lodash": "4.15.0",
+    "optioner": "^0.8.0"
   },
   "devDependencies": {
     "code": "4.1.x",
-    "coveralls": "2.11.x",
-    "eslint-config-seneca": "3.x.x",
-    "eslint-plugin-hapi": "4.x.x",
-    "eslint-plugin-standard": "2.x.x",
-    "lab": "13.1.x",
+    "coveralls": "2.13.x",
     "docco": "0.7.x",
+    "lab": "13.1.x",
     "pre-commit": "1.1.x",
+    "prettier": "1.4.x",
     "seneca": "plugin",
     "seneca-basic": "0.5.x"
   },

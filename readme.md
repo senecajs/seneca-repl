@@ -30,6 +30,11 @@ var seneca = Seneca()
 
   // open another repl on port 10001
   .use('seneca-repl', {port: 10001})
+
+  // open yet another repl on a free port chosen by your OS
+  // look at the INFO level logs for the host and port
+  // or get them from seneca.export('repl/address')
+  .use('seneca-repl', {port: 0})
 ```
 
 To access the repl, telnet to the port.
@@ -107,7 +112,7 @@ To run tests, simply use npm:
 ```
 
 ## License
-Copyright (c) 2015-2016, Senecajs and other contributors.
+Copyright (c) 2015-2017, Richard Rodger and other contributors.
 Licensed under [MIT][].
 
 [MIT]: ./LICENSE
