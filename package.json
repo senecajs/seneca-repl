@@ -1,7 +1,7 @@
 {
   "name": "seneca-repl",
   "description": "Seneca plugin: seneca-repl",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Wyatt Preul (https://github.com/geek)",
