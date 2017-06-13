@@ -3,7 +3,7 @@ sudo: false
 
 env:
   global:
-    - TIMEOUT_MULTIPLIER=6
+    - TIMEOUT_MULTIPLIER=12
 
   matrix:
     - SENECA_VER=seneca@3.x.x

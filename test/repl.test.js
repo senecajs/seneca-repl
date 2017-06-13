@@ -133,8 +133,11 @@ describe('seneca-repl', function() {
 
           result = ''
 
+          console.log('SEND: '+step.send)
           sock.write(step.send)
           setTimeout(function() {
+            console.log('RESULT: '+result)
+            console.log('EXPECT: '+step.expect)
             if (step.expect) {
               expect(result).to.contain(step.expect)
             }
