@@ -18,7 +18,7 @@
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -L -t 80 -r html > docs/coverage.html",
     "annotate": "docco repl.js -o docs/annotated",
-    "prettier": "prettier --write --no-semi --single-quote *.js lib/*.js test/*.js"
+    "prettier": "prettier --write --no-semi --single-quote repl.js test/*.js"
   },
   "keywords": [
     "seneca",
@@ -40,8 +40,8 @@
     "docco": "0.7.x",
     "lab": "13.1.x",
     "pre-commit": "1.1.x",
-    "prettier": "1.4.x",
-    "seneca": "plugin",
+    "prettier": "^1.4.4",
+    "seneca": "^3.4.3",
     "seneca-basic": "0.5.x"
   },
   "files": [

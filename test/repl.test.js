@@ -12,9 +12,7 @@ var describe = lab.describe
 var it = lab.it
 var expect = Code.expect
 
-
-var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER,10) || 1
-
+var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER, 10) || 1
 
 describe('seneca-repl', function() {
   it('start', function(done) {
@@ -49,7 +47,7 @@ describe('seneca-repl', function() {
             first = false
             expect(result).to.contain('->')
             sock.write('this\n')
-          }, 50*tmx)
+          }, 50 * tmx)
         } else {
           expect(result).to.contain('->')
           sock.write('seneca.quit\n')
@@ -61,8 +59,8 @@ describe('seneca-repl', function() {
     })
   })
 
-  it('interaction', { timeout: 9999*tmx }, function(done) {
-    Seneca({log:'silent'})
+  it('interaction', { timeout: 9999 * tmx }, function(done) {
+    Seneca({ log: 'silent' })
       .add('a:1', function(msg, reply) {
         reply({ x: msg.x })
       })
@@ -133,22 +131,22 @@ describe('seneca-repl', function() {
 
           result = ''
 
-          console.log('SEND: '+step.send)
+          console.log('SEND: ' + step.send)
           sock.write(step.send)
           setTimeout(function() {
-            console.log('RESULT: '+result)
-            console.log('EXPECT: '+step.expect)
+            console.log('RESULT: ' + result)
+            console.log('EXPECT: ' + step.expect)
             if (step.expect) {
               expect(result).to.contain(step.expect)
             }
             nextStep()
-          }, 22*tmx)
+          }, 22 * tmx)
         }
 
         setTimeout(function() {
           expect(result).to.contain('seneca')
           nextStep()
-        }, 222*tmx)
+        }, 222 * tmx)
       })
   })
 })
