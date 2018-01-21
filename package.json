@@ -48,8 +48,5 @@
     "LICENSE",
     "README.md",
     "repl.js"
-  ],
-  "pre-commit": [
-    "test"
   ]
 }
