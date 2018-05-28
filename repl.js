@@ -234,7 +234,7 @@ function start_repl(seneca, options) {
 function parse_option(optpath, val) {
   optpath += '.'
 
-  var part = /([^\.]+)\.+/g
+  var part = /([^.]+)\.+/g
   var m
   var out = {}
   var cur = out

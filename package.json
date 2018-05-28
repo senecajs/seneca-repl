@@ -1,7 +1,7 @@
 {
   "name": "seneca-repl",
   "description": "Seneca plugin: seneca-repl",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Wyatt Preul (https://github.com/geek)",
@@ -30,19 +30,17 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "jsonic": "0.2.2",
-    "lodash": "4.15.0",
-    "optioner": "^0.8.0"
+    "jsonic": "0.3",
+    "lodash": "4.17",
+    "optioner": "1.1"
   },
   "devDependencies": {
-    "code": "4.1.x",
-    "coveralls": "2.13.x",
-    "docco": "0.7.x",
-    "lab": "13.1.x",
-    "pre-commit": "1.1.x",
-    "prettier": "1.4.x",
-    "seneca": "plugin",
-    "seneca-basic": "0.5.x"
+    "code": "4",
+    "coveralls": "3",
+    "lab": "14",
+    "prettier": "1",
+    "seneca": "github:senecajs/seneca",
+    "seneca-basic": "0.6"
   },
   "files": [
     "LICENSE",
