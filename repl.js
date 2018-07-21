@@ -193,6 +193,8 @@ function start_repl(seneca, options) {
         }
       } else if (alias[cmd]) {
         cmd = alias[cmd]
+      } else {
+        cmd = cmdtext.replace(/\n$/, '');
       }
 
       if (!execute_action(cmd)) {
