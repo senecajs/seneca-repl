@@ -31,6 +31,8 @@ module.exports = function repl(options) {
       throw err
     }
 
+
+    
     seneca.add('init:repl', function(msg, reply) {
       var server = start_repl(seneca, options)
 
@@ -64,16 +66,6 @@ module.exports = function repl(options) {
 }
 
 function start_repl(seneca, options) {
-  /*
-  var in_opts = _.isObject(arguments[0]) ? arguments[0] : {}
-  in_opts.port = _.isNumber(arguments[0]) ? arguments[0] : in_opts.port
-  in_opts.host = _.isString(arguments[1]) ? arguments[1] : in_opts.host
-
-  var alias = _.extend(options.alias || {}, in_opts.alias)
-
-  var repl_opts = seneca.util.deepextend(options, in_opts)
-  */
-
   var alias = options.alias
 
   var server = Net.createServer(function(socket) {
@@ -94,6 +86,7 @@ function start_repl(seneca, options) {
       socket.end()
     })
 
+    var act_trace = false
     var act_index_map = {}
     var act_index = 1000000
     function fmt_index(i) {
@@ -107,6 +100,8 @@ function start_repl(seneca, options) {
     })
 
     sd.on_act_in = function on_act_in(actdef, args, meta) {
+      if(!act_trace) return;
+      
       var actid = (meta || args.meta$ || {}).id
       socket.write(
         'IN  ' +
@@ -130,6 +125,8 @@ function start_repl(seneca, options) {
     }
 
     sd.on_act_out = function on_act_out(actdef, out, meta) {
+      if(!act_trace) return;
+      
       var actid = (meta || out.meta$ || {}).id
 
       out = out && out.entity$
@@ -141,11 +138,28 @@ function start_repl(seneca, options) {
     }
 
     sd.on_act_err = function on_act_err(actdef, err, meta) {
+      if(!act_trace) return;
+      
       var actid = (meta || err.meta$ || {}).id
 
       if (actid) {
         var cur_index = act_index_map[actid]
         socket.write('ERR ' + fmt_index(cur_index) + ': ' + err.message + '\n')
+      }
+    }
+
+    var log_capture = false
+    var log_match = null
+    
+    sd.root.on_log = function(data) {
+      if(log_capture) {
+        var out = sd.__build_test_log__$$ ?
+            sd.__build_test_log__$$(this,'test',data) :
+            Util.inspect(data).replace(/\n/g, ' ')
+
+        if(null == log_match || -1 < out.indexOf(log_match)) {
+          socket.write('LOG: '+out)
+        }
       }
     }
 
@@ -165,6 +179,21 @@ function start_repl(seneca, options) {
 
       if ('quit' === cmd || 'exit' === cmd) {
         socket.end()
+      } else if ('trace' === cmd) {
+        act_trace = !act_trace
+        return callback()
+      } else if ('log' === cmd) {
+        log_capture = !log_capture
+
+        if(!log_capture) {
+          log_match = null
+        }
+        else if(m = cmdtext.match(/^log\s+(.*)/)) {
+          log_match = m[1]
+        }
+        
+        return callback()
+        
       } else if ('history' === cmd) {
         return callback(cmd_history.join('\n'))
       } else if ('set' === cmd) {
@@ -202,8 +231,16 @@ function start_repl(seneca, options) {
       function execute_action(cmd) {
         try {
           var args = Jsonic(cmd)
-          context.s.act(args, function(err) {
-            callback(err ? err.message : null)
+          context.s.act(args, function(err, out) {
+            if(out && !act_trace) {
+              out = out && out.entity$
+                ? out
+                : Util.inspect(sd.util.clean(out), { depth: options.depth })
+              socket.write(out + '\n')
+            }
+            else if(err) {
+              socket.write(Util.inspect(err) + '\n')
+            }
           })
           return true
         } catch (e) {

@@ -1,6 +1,6 @@
 {
-  "name": "seneca-repl",
-  "description": "Seneca plugin: seneca-repl",
+  "name": "@seneca/repl",
+  "description": "Provides a client and server REPL for Seneca microservice systems.",
   "version": "1.2.0",
   "main": "repl.js",
   "license": "MIT",
@@ -13,12 +13,17 @@
     "Shane Lacey (https://github.com/shanel262)",
     "Dean McDonnell (https://github.com/mcdonnelldean)"
   ],
+  "bin": {
+    "seneca-repl": "./bin/seneca-repl-exec.js"
+  },
   "scripts": {
-    "test": "lab -v -P test -L -t 80 -c",
+    "test": "lab -P test -v -t 70",
     "coveralls": "lab -s -P test -r lcov | coveralls",
-    "coverage": "lab -v -P test -L -t 80 -r html > docs/coverage.html",
-    "annotate": "docco repl.js -o docs/annotated",
-    "prettier": "prettier --write --no-semi --single-quote *.js lib/*.js test/*.js"
+    "coverage": "lab -v -P test -t 70 -r html > coverage.html",
+    "prettier": "prettier --write --no-semi --single-quote entity.js lib/*.js test/*.js",
+    "clean-npm": "rm -rf node_modules package-lock.json",
+    "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
+    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public"
   },
   "keywords": [
     "seneca",
@@ -30,24 +35,26 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "jsonic": "0.3",
-    "lodash": "4.17",
-    "optioner": "1.1"
+    "lodash": "^4.17.11",
+    "vorpal": "^1.12.0"
   },
   "devDependencies": {
-    "code": "4",
-    "coveralls": "3",
-    "lab": "14",
-    "prettier": "1",
-    "seneca": "github:senecajs/seneca",
-    "seneca-basic": "0.6"
+    "async": "^2.6.2",
+    "code": "^5.2.4",
+    "coveralls": "^3.0.3",
+    "gex": "^0.3.0",
+    "joi": "^14.3.1",
+    "lab": "^18.0.2",
+    "prettier": "^1.16.4",
+    "seneca": "plugin",
+    "seneca-entity": "^3.1.0",
+    "seneca-mem-store": "^1.5.1",
+    "seneca-plugin-validator": "0.0.1",
+    "seneca-promisify": "^0.7.1"
   },
   "files": [
     "LICENSE",
     "README.md",
     "repl.js"
-  ],
-  "pre-commit": [
-    "test"
   ]
 }
