@@ -17,6 +17,9 @@ function repl(vorpal) {
     .mode('repl')
     .delimiter('-> ')
     .init(function(args, cb) {
+      if(!connection.open) {
+        this.log('No connection. Type `exit` and use `connect`.')
+      }
       cb()
     })
     .action(function(args, callback) {
@@ -72,6 +75,8 @@ function telnet(spec, done) {
   connection.sock = Net.connect(spec.port, spec.host)
 
   connection.sock.on('connect', function() {
+    connection.open = true
+    delete connection.closed
     done()
   })
 
@@ -82,6 +87,7 @@ function telnet(spec, done) {
   })
 
   connection.sock.on('close', function(err) {
+    connection.open = false
     connection.closed = true
     spec.log('Connection closed.')
     vorpal.execSync('exit')

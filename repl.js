@@ -151,7 +151,7 @@ function start_repl(seneca, options) {
     var log_capture = false
     var log_match = null
     
-    sd.root.on_log = function(data) {
+    sd.on('log',function(data) {
       if(log_capture) {
         var out = sd.__build_test_log__$$ ?
             sd.__build_test_log__$$(this,'test',data) :
@@ -161,7 +161,7 @@ function start_repl(seneca, options) {
           socket.write('LOG: '+out)
         }
       }
-    }
+    })
 
     r.context.s = r.context.seneca = sd
 
