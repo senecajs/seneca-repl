@@ -188,7 +188,7 @@ function start_repl(seneca, options) {
         if(!log_capture) {
           log_match = null
         }
-        else if(m = cmdtext.match(/^log\s+(.*)/)) {
+        else if(m = cmdtext.match(/^log\s+match\s+(.*)/)) {
           log_match = m[1]
         }
         

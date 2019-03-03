@@ -1,9 +1,7 @@
 /* Copyright (c) 2012-2019 Richard Rodger, Wyatt Preul, and other contributors, MIT License */
 'use strict'
 
-
-var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER,10) || 1
-
+var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER, 10) || 1
 
 const Util = require('util')
 const Net = require('net')
@@ -14,18 +12,18 @@ const Code = require('code')
 const PluginValidator = require('seneca-plugin-validator')
 const Plugin = require('..')
 
-const  Seneca = require('seneca')
+const Seneca = require('seneca')
 
 const lab = (exports.lab = Lab.script())
 const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-
-
 describe('repl', function() {
   it('start', async function() {
-    var si = Seneca().use('promisify').test()
+    var si = Seneca()
+      .use('promisify')
+      .test()
 
     await si
       .use(Plugin, { host: '0.0.0.0', port: 60606, depth: 1 })
@@ -34,32 +32,31 @@ describe('repl', function() {
 
     await si.close()
   })
-  
 
   it('happy', async function() {
     var si = await Seneca()
-        .use('promisify')
-        .test()
-        .use(Plugin, { port: 0 })
-        .ready()
+      .use('promisify')
+      .test()
+      .use(Plugin, { port: 0 })
+      .ready()
 
     var port = si.export('repl/address').port
 
     var result = ''
     var sock = Net.connect(port)
     var first = true
-    
-    return new Promise((good,bad)=>{
+
+    return new Promise((good, bad) => {
       sock.on('data', function(data) {
         result += data.toString('ascii')
-        
+
         expect(result).to.contain('seneca')
         if (first) {
           setTimeout(function() {
             first = false
             expect(result).to.contain('->')
             sock.write('this\n')
-          }, 50*tmx)
+          }, 50 * tmx)
         } else {
           expect(result).to.contain('->')
           sock.write('seneca.quit\n')
@@ -71,9 +68,9 @@ describe('repl', function() {
     })
   })
 
-  it('interaction', { timeout: 9999*tmx }, async function() {
-    return new Promise((good,bad)=>{
-      Seneca({log:'silent'})
+  it('interaction', { timeout: 9999 * tmx }, async function() {
+    return new Promise((good, bad) => {
+      Seneca({ log: 'silent' })
         .add('a:1', function(msg, reply) {
           reply({ x: msg.x })
         })
@@ -153,13 +150,13 @@ describe('repl', function() {
                 expect(result).to.contain(step.expect)
               }
               nextStep()
-            }, 22*tmx)
+            }, 22 * tmx)
           }
 
           setTimeout(function() {
             expect(result).to.contain('seneca')
             nextStep()
-          }, 222*tmx)
+          }, 222 * tmx)
         })
     })
   })

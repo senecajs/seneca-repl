@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Wyatt Preul (https://github.com/geek)",
@@ -55,6 +55,7 @@
   "files": [
     "LICENSE",
     "README.md",
-    "repl.js"
+    "repl.js",
+    "bin/seneca-repl-exec.js"
   ]
 }
