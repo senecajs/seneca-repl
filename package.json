@@ -35,7 +35,6 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "lodash": "^4.17.11",
     "vorpal": "^1.12.0"
   },
   "devDependencies": {
