@@ -5,10 +5,9 @@ var Net = require('net')
 var Repl = require('repl')
 var Util = require('util')
 var Vm = require('vm')
-var Jsonic = require('jsonic')
-var Optioner = require('optioner')
 
-var defaults = Optioner({
+module.exports = repl
+module.exports.defaults = {
   port: 30303,
   host: '127.0.0.1',
   depth: 11,
@@ -20,40 +19,32 @@ var defaults = Optioner({
     // TODO: there should be a seneca.tree()
     tree: 'seneca.root.private$.actrouter'
   }
-})
+}
 
-module.exports = function repl(options) {
+function repl(options) {
   var seneca = this
   var export_address = {}
 
-  defaults(options, function(err, options) {
-    if (err) {
-      throw err
-    }
-
-
+  seneca.init(function(reply) {
+    var server = start_repl(seneca, options)
     
-    seneca.add('init:repl', function(msg, reply) {
-      var server = start_repl(seneca, options)
-
-      server.on('listening', function() {
-        var address = server.address()
-
-        export_address.port = address.port
-        export_address.host = address.address
-        export_address.family = address.family
-
-        seneca.log.info({
-          kind: 'notice',
-          notice: 'REPL listening on ' + address.address + ':' + address.port
-        })
-
-        reply()
+    server.on('listening', function() {
+      var address = server.address()
+      
+      export_address.port = address.port
+      export_address.host = address.address
+      export_address.family = address.family
+      
+      seneca.log.info({
+        kind: 'notice',
+        notice: 'REPL listening on ' + address.address + ':' + address.port
       })
-
-      server.on('error', function(err) {
-        seneca.log.error(err)
-      })
+      
+      reply()
+    })
+    
+    server.on('error', function(err) {
+      seneca.log.error(err)
     })
   })
 
@@ -200,7 +191,7 @@ function start_repl(seneca, options) {
         m = cmdtext.match(/^(\S+)\s+(\S+)\s+(\S+)/)
 
         if (m) {
-          var setopt = parse_option(m[2], Jsonic('$:' + m[3]).$)
+          var setopt = parse_option(m[2], seneca.util.Jsonic('$:' + m[3]).$)
           context.s.options(setopt)
 
           if (setopt.repl) {
@@ -230,7 +221,7 @@ function start_repl(seneca, options) {
 
       function execute_action(cmd) {
         try {
-          var args = Jsonic(cmd)
+          var args = seneca.util.Jsonic(cmd)
           context.s.act(args, function(err, out) {
             if(out && !act_trace) {
               out = out && out.entity$
