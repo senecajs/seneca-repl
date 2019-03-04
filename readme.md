@@ -16,7 +16,7 @@ To install, simply use npm. Remember you will need to install [Seneca.js][] if y
 
 ```sh
 > npm install seneca
-> npm install seneca-repl
+> npm install @seneca/repl
 ```
 
 ## Usage
@@ -26,18 +26,35 @@ var Seneca = require('seneca')
 
 var seneca = Seneca()
   // open repl on default port 30303
-  .use('seneca-repl') 
+  .use('repl') 
 
   // open another repl on port 10001
-  .use('seneca-repl', {port: 10001})
+  .use('repl', {port: 10001})
 
   // open yet another repl on a free port chosen by your OS
   // look at the INFO level logs for the host and port
   // or get them from seneca.export('repl/address')
-  .use('seneca-repl', {port: 0})
+  .use('repl', {port: 0})
 ```
 
-To access the repl, telnet to the port.
+To access the REPL, run the `seneca-repl` command provided by this
+module. Install this as a global module for easy access:
+
+```
+$ npm install -g @seneca-repl
+```
+
+Provide the host (default `localhost`) and port (default `30303`):
+
+```
+$ seneca-repl remote-host 12345
+```
+
+The `seneca-repl` command provides a convenient REPL interface including line editing and history. In production settings you'll want to create an SSH tunnel or similar
+for this purpose.
+
+
+Alternatively you can telnet to the port:
 
 ```
 $ telnet localhost 30303
@@ -96,7 +113,8 @@ There are some command aliases for common actions:
 * `history`: print command history
 * `set <path> <value>`: set a seneca option, e.g: `set debug.deprecation true`. Use `seneca.options()` to get options
 * `alias <name> <cmd>`: define a new alias
-
+* `log`: toggle printing of remote log entries in test format (NOTE: these are unfiltered)
+* `log match <literal>`: when logging is enabled, only print lines matching the provided literal string
 
 
 ## Contributing
