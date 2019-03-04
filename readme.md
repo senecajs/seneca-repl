@@ -113,6 +113,7 @@ There are some command aliases for common actions:
 * `history`: print command history
 * `set <path> <value>`: set a seneca option, e.g: `set debug.deprecation true`. Use `seneca.options()` to get options
 * `alias <name> <cmd>`: define a new alias
+* `trace`: toggle IN/OUT tracing of submitted messages
 * `log`: toggle printing of remote log entries in test format (NOTE: these are unfiltered)
 * `log match <literal>`: when logging is enabled, only print lines matching the provided literal string
 
