@@ -41,7 +41,7 @@ To access the REPL, run the `seneca-repl` command provided by this
 module. Install this as a global module for easy access:
 
 ```
-$ npm install -g @seneca-repl
+$ npm install -g @seneca/repl
 ```
 
 Provide the host (default `localhost`) and port (default `30303`):
