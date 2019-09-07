@@ -1,5 +1,8 @@
 'use strict'
 
+// TODO: implement cmd for seneca.make('core/fixture').load$('qazwsx',(e,x)=>console.log(x.data$())) to show ent data
+
+
 // Load modules
 var Net = require('net')
 var Repl = require('repl')

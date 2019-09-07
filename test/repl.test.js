@@ -6,8 +6,8 @@ var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER, 10) || 1
 const Util = require('util')
 const Net = require('net')
 
-const Lab = require('lab')
-const Code = require('code')
+const Lab = require('@hapi/lab')
+const Code = require('@hapi/code')
 
 const PluginValidator = require('seneca-plugin-validator')
 const Plugin = require('..')

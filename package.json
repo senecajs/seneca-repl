@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -38,18 +38,19 @@
     "vorpal": "^1.12.0"
   },
   "devDependencies": {
-    "async": "^2.6.2",
-    "code": "^5.2.4",
-    "coveralls": "^3.0.3",
+    "@hapi/code": "^6.0.0",
+    "@hapi/joi": "^15.1.1",
+    "@hapi/lab": "^20.2.2",
+    "acorn": "^7.0.0",
+    "async": "^3.1.0",
+    "coveralls": "^3.0.6",
     "gex": "^0.3.0",
-    "joi": "^14.3.1",
-    "lab": "^18.0.2",
-    "prettier": "^1.16.4",
+    "prettier": "^1.18.2",
     "seneca": "plugin",
-    "seneca-entity": "^3.1.0",
-    "seneca-mem-store": "^1.5.1",
-    "seneca-plugin-validator": "0.0.1",
-    "seneca-promisify": "^0.7.1"
+    "seneca-entity": "^5.1.0",
+    "seneca-mem-store": "^1.6.0",
+    "seneca-plugin-validator": "0.3.0",
+    "seneca-promisify": "^1.0.1"
   },
   "files": [
     "LICENSE",
