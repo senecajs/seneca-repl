@@ -5,7 +5,7 @@
 
 const Net = require('net')
 
-const Vorpal = require('vorpal')
+const Vorpal = require('@seneca/vorpal')
 
 const vorpal = Vorpal()
 

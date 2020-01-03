@@ -21,9 +21,10 @@
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -t 70 -r html > coverage.html",
     "prettier": "prettier --write --no-semi --single-quote entity.js lib/*.js test/*.js",
-    "clean-npm": "rm -rf node_modules package-lock.json",
+    "reset": "npm run clean && npm i && npm test",
+    "clean": "rm -rf node_modules package-lock.json yarn.lock",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
-    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish  --access public --registry=http://registry.npmjs.org"
+    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
   },
   "keywords": [
     "seneca",
@@ -35,21 +36,21 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "vorpal": "^1.12.0"
+    "@seneca/vorpal": "^2.0.2"
   },
   "devDependencies": {
-    "@hapi/code": "^6.0.0",
+    "@hapi/code": "^7.0.0",
     "@hapi/joi": "^15.1.1",
-    "@hapi/lab": "^20.2.2",
-    "acorn": "^7.0.0",
+    "@hapi/lab": "^22.0.2",
+    "acorn": "^7.1.0",
     "async": "^3.1.0",
-    "coveralls": "^3.0.6",
-    "gex": "^0.3.0",
-    "prettier": "^1.18.2",
+    "coveralls": "^3.0.9",
+    "gex": "^1.0.0",
+    "prettier": "^1.19.1",
     "seneca": "plugin",
-    "seneca-entity": "^5.1.2",
+    "seneca-entity": "^6.0.0",
     "seneca-mem-store": "^1.6.0",
-    "seneca-plugin-validator": "0.3.0",
+    "seneca-plugin-validator": "0.5.0",
     "seneca-promisify": "^1.1.0"
   },
   "files": [
