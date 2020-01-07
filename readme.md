@@ -116,11 +116,13 @@ There are some command aliases for common actions:
 * `trace`: toggle IN/OUT tracing of submitted messages
 * `log`: toggle printing of remote log entries in test format (NOTE: these are unfiltered)
 * `log match <literal>`: when logging is enabled, only print lines matching the provided literal string
+* `depth <number>`: set depth of Util.inspect printing
 
 
 ## Contributing
-The [Senecajs org][] encourage open participation. If you feel you can help in any way, be it with
-documentation, examples, extra testing, or new features please get in touch.
+The [Senecajs org][] encourages open participation. If you feel you
+can help in any way, be it with documentation, examples, extra
+testing, or new features please get in touch.
 
 ## Test
 

@@ -7,7 +7,7 @@ const Net = require('net')
 
 const Vorpal = require('@seneca/vorpal')
 
-const vorpal = Vorpal()
+const vorpal = Vorpal({history:{ignore_mode:true}})
 
 const connection = {}
 
@@ -28,6 +28,7 @@ function repl(vorpal) {
       }
 
       var cmd = args+'\n'
+
       connection.sock.write(cmd)
       callback()
     })
@@ -46,6 +47,7 @@ function connect(vorpal) {
           log(err)
         }
         else {
+          vorpal.history('seneca~'+host+'~'+port)
           vorpal.exec('repl')
         }
         callback()

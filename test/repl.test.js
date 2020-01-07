@@ -33,6 +33,23 @@ describe('repl', function() {
     await si.close()
   })
 
+  it('cmd_get', async function() {
+    var si = await Seneca({foo:1,bar:{zed:2}}).test()
+    Plugin.intern.cmd_get('get', 'foo', {seneca:si}, {}, (err,out) => {
+      expect(err).not.exists()
+      expect(out).equal(1)
+    })
+  })
+
+  it('cmd_depth', async function() {
+    var si = await Seneca({foo:1,bar:{zed:2}}).test()
+    Plugin.intern.cmd_depth('depth', '4', {seneca:si}, {}, (err,out) => {
+      expect(err).not.exists()
+      expect(out).equal('Inspection depth set to 4')
+    })
+  })
+
+  
   it('happy', async function() {
     var si = await Seneca()
       .use('promisify')
@@ -88,6 +105,7 @@ describe('repl', function() {
             result += buffer.toString('ascii')
           })
 
+          // NOTE: \n needed at end
           var conversation = [
             {
               send: 'console.log(this)\n',
@@ -96,6 +114,14 @@ describe('repl', function() {
             {
               send: 'set foo.bar 1\nseneca.options().foo\n',
               expect: 'bar'
+            },
+            {
+              send: 'set zed qazwsxedcrfv\n',
+              expect: ''
+            },
+            {
+              send: 'get zed\n',
+              expect: 'qazwsxedcrfv'
             },
             {
               send: 'list\n',
@@ -140,7 +166,7 @@ describe('repl', function() {
             }
 
             result = ''
-
+            
             //console.log('SEND: '+step.send)
             sock.write(step.send)
             setTimeout(function() {
