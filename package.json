@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "main": "repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@hapi/hoek": "^9.0.0",
-    "@seneca/vorpal": "^2.1.0"
+    "@seneca/vorpal": "^2.1.1"
   },
   "devDependencies": {
     "@hapi/code": "^8.0.1",
