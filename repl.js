@@ -18,6 +18,9 @@ module.exports.defaults = {
   depth: 11,
   alias: {
     stats: 'seneca.stats()',
+    'stats full': 'seneca.stats({summary:false})',
+
+    // DEPRECATED
     'stats/full': 'seneca.stats({summary:false})',
 
     // TODO: there should be a seneca.tree()

@@ -34,22 +34,21 @@ describe('repl', function() {
   })
 
   it('cmd_get', async function() {
-    var si = await Seneca({foo:1,bar:{zed:2}}).test()
-    Plugin.intern.cmd_get('get', 'foo', {seneca:si}, {}, (err,out) => {
+    var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
+    Plugin.intern.cmd_get('get', 'foo', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
       expect(out).equal(1)
     })
   })
 
   it('cmd_depth', async function() {
-    var si = await Seneca({foo:1,bar:{zed:2}}).test()
-    Plugin.intern.cmd_depth('depth', '4', {seneca:si}, {}, (err,out) => {
+    var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
+    Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
       expect(out).equal('Inspection depth set to 4')
     })
   })
 
-  
   it('happy', async function() {
     var si = await Seneca()
       .use('promisify')
@@ -166,7 +165,7 @@ describe('repl', function() {
             }
 
             result = ''
-            
+
             //console.log('SEND: '+step.send)
             sock.write(step.send)
             setTimeout(function() {

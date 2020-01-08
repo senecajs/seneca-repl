@@ -8,17 +8,18 @@ function rep(n, c) {
 
 require('seneca')
   .use('promisify')
-  .use('..',{port:20202})
+  .use('..', { port: 20202 })
   .use('entity', {
     hide: {
       '-/-/foo': ['c']
     }
   })
   .use(function foo() {
-    this
-      .message('make:foo', async function(msg) {
-        return await this.entity('foo').data$(msg.foo).save$()
-      })
+    this.message('make:foo', async function(msg) {
+      return await this.entity('foo')
+        .data$(msg.foo)
+        .save$()
+    })
       .message('get:foo', async function(msg) {
         return await this.entity('foo').load$(msg.id)
       })

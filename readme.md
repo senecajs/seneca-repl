@@ -107,11 +107,12 @@ There are some command aliases for common actions:
 * `list <pin>`: list local patterns, optionally narrowed by `pin`
 * `tree`: show local patterns in tree format
 * `stats`: print local statistics
-* `stats/full`: print full local statistics
+* `stats full`: print full local statistics
 * `exit` or `quit`: exit the repl session
 * `last`: run last command again
 * `history`: print command history
-* `set <path> <value>`: set a seneca option, e.g: `set debug.deprecation true`. Use `seneca.options()` to get options
+* `set <path> <value>`: set a seneca option, e.g: `set debug.deprecation true`
+* `get <path>`: get a seneca option
 * `alias <name> <cmd>`: define a new alias
 * `trace`: toggle IN/OUT tracing of submitted messages
 * `log`: toggle printing of remote log entries in test format (NOTE: these are unfiltered)
