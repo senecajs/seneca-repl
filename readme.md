@@ -104,7 +104,7 @@ central point of control for your system.
 
 There are some command aliases for common actions:
 
-* `list`: list local patterns
+* `list <pin>`: list local patterns, optionally narrowed by `pin`
 * `tree`: show local patterns in tree format
 * `stats`: print local statistics
 * `stats/full`: print full local statistics
@@ -133,7 +133,7 @@ To run tests, simply use npm:
 ```
 
 ## License
-Copyright (c) 2015-2017, Richard Rodger and other contributors.
+Copyright (c) 2015-2020, Richard Rodger and other contributors.
 Licensed under [MIT][].
 
 [MIT]: ./LICENSE
