@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -24,7 +24,7 @@
     "reset": "npm run clean && npm i && npm test",
     "clean": "rm -rf node_modules package-lock.json yarn.lock",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
-    "repo-publish": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
+    "repo-publish": "npm run clean && npm i --registry=http://registry.npmjs.org && npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=http://registry.npmjs.org"
   },
   "keywords": [
     "seneca",
@@ -36,23 +36,23 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "@hapi/hoek": "^9.0.0",
+    "@hapi/hoek": "^9.0.2",
     "@seneca/vorpal": "^2.1.1"
   },
   "devDependencies": {
     "@hapi/code": "^8.0.1",
-    "@hapi/joi": "^15.1.1",
-    "@hapi/lab": "^21.0.0",
+    "@hapi/joi": "^17.1.0",
+    "@hapi/lab": "^22.0.3",
     "acorn": "^7.1.0",
-    "async": "^3.1.0",
+    "async": "^3.1.1",
     "coveralls": "^3.0.9",
     "gex": "^1.0.0",
     "prettier": "^1.19.1",
     "seneca": "plugin",
-    "seneca-entity": "^6.0.0",
+    "seneca-entity": "^7.0.0",
     "seneca-mem-store": "^1.6.0",
-    "seneca-plugin-validator": "0.5.0",
-    "seneca-promisify": "^1.1.0"
+    "seneca-plugin-validator": "0.6.0",
+    "seneca-promisify": "^1.2.0"
   },
   "files": [
     "LICENSE",

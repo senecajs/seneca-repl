@@ -11,7 +11,8 @@ env:
     - SENECA_VER=senecajs/seneca
 
 node_js:
-  - '11'
+  - '13'
+  - '12'
   - '10'
   - '8'
 
