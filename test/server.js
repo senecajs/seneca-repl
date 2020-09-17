@@ -11,25 +11,23 @@ require('seneca')
   .use('..', { port: 20202 })
   .use('entity', {
     hide: {
-      '-/-/foo': ['c']
-    }
+      '-/-/foo': ['c'],
+    },
   })
   .use(function foo() {
-    this.message('make:foo', async function(msg) {
-      return await this.entity('foo')
-        .data$(msg.foo)
-        .save$()
+    this.message('make:foo', async function (msg) {
+      return await this.entity('foo').data$(msg.foo).save$()
     })
-      .message('get:foo', async function(msg) {
+      .message('get:foo', async function (msg) {
         return await this.entity('foo').load$(msg.id)
       })
-      .message('list:foo', async function(msg) {
+      .message('list:foo', async function (msg) {
         return await this.entity('foo').list$()
       })
-      .message('bad:foo', async function(msg) {
+      .message('bad:foo', async function (msg) {
         throw new Error('Bad Foo!')
       })
-      .prepare(async function() {
+      .prepare(async function () {
         var foo = this.entity('foo')
         await foo
           .make$()
@@ -45,6 +43,6 @@ require('seneca')
           .save$()
       })
   })
-  .ready(async function() {
+  .ready(async function () {
     console.log(await this.entity('foo').list$())
   })

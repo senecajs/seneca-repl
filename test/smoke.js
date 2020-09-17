@@ -1,6 +1,6 @@
 require('seneca')()
   .use('..')
-  .ready(function() {
+  .ready(function () {
     console.log(this.export('repl/address'))
   })
 

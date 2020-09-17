@@ -19,11 +19,9 @@ const describe = lab.describe
 const it = lab.it
 const expect = Code.expect
 
-describe('repl', function() {
-  it('start', async function() {
-    var si = Seneca()
-      .use('promisify')
-      .test()
+describe('repl', function () {
+  it('start', async function () {
+    var si = Seneca().use('promisify').test()
 
     await si
       .use(Plugin, { host: '0.0.0.0', port: 60606, depth: 1 })
@@ -33,7 +31,7 @@ describe('repl', function() {
     await si.close()
   })
 
-  it('cmd_get', async function() {
+  it('cmd_get', async function () {
     var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
     Plugin.intern.cmd_get('get', 'foo', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
@@ -41,7 +39,7 @@ describe('repl', function() {
     })
   })
 
-  it('cmd_depth', async function() {
+  it('cmd_depth', async function () {
     var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
     Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
@@ -49,7 +47,7 @@ describe('repl', function() {
     })
   })
 
-  it('happy', async function() {
+  it('happy', async function () {
     var si = await Seneca()
       .use('promisify')
       .test()
@@ -63,12 +61,12 @@ describe('repl', function() {
     var first = true
 
     return new Promise((good, bad) => {
-      sock.on('data', function(data) {
+      sock.on('data', function (data) {
         result += data.toString('ascii')
 
         expect(result).to.contain('seneca')
         if (first) {
-          setTimeout(function() {
+          setTimeout(function () {
             first = false
             expect(result).to.contain('->')
             sock.write('this\n')
@@ -84,30 +82,30 @@ describe('repl', function() {
     })
   })
 
-  it('interaction', { timeout: 9999 * tmx }, async function() {
+  it('interaction', { timeout: 9999 * tmx }, async function () {
     return new Promise((good, bad) => {
       Seneca({ log: 'silent' })
-        .add('a:1', function(msg, reply) {
+        .add('a:1', function (msg, reply) {
           reply({ x: msg.x })
         })
-        .add('e:1', function(msg, reply) {
+        .add('e:1', function (msg, reply) {
           reply(new Error('eek'))
         })
         .use('..', { port: 0 })
-        .act('sys:repl,add:cmd',{
+        .act('sys:repl,add:cmd', {
           name: 'foo',
-          action: function(cmd,argtext,context,options,respond) {
-            return respond(null,'FOO:'+argtext)
-          }
+          action: function (cmd, argtext, context, options, respond) {
+            return respond(null, 'FOO:' + argtext)
+          },
         })
 
-        .ready(function() {
+        .ready(function () {
           var port = this.export('repl/address').port
 
           var sock = Net.connect(port)
 
           var result
-          sock.on('data', function(buffer) {
+          sock.on('data', function (buffer) {
             result += buffer.toString('ascii')
           })
 
@@ -115,56 +113,56 @@ describe('repl', function() {
           var conversation = [
             {
               send: 'console.log(this)\n',
-              expect: '{'
+              expect: '{',
             },
             {
               send: 'set foo.bar 1\nseneca.options().foo\n',
-              expect: 'bar'
+              expect: 'bar',
             },
             {
               send: 'set zed qazwsxedcrfv\n',
-              expect: ''
+              expect: '',
             },
             {
               send: 'get zed\n',
-              expect: 'qazwsxedcrfv'
+              expect: 'qazwsxedcrfv',
             },
             {
               send: 'list\n',
-              expect: "{ cmd: 'close', role: 'seneca' }"
+              expect: "{ cmd: 'close', role: 'seneca' }",
             },
             {
               send: 'stats\n',
-              expect: 'start'
+              expect: 'start',
             },
             {
               send: 'list\n',
-              expect: "role: 'seneca'"
+              expect: "role: 'seneca'",
             },
             {
               send: 'a:1,x:2\n',
-              expect: 'x: 2'
+              expect: 'x: 2',
             },
             {
               send: 'last\n',
-              expect: 'x: 2'
+              expect: 'x: 2',
             },
             {
               send: 'alias a1x3 a:1,x:3\n',
-              expect: 'seneca'
+              expect: 'seneca',
             },
             {
               send: 'a1x3\n',
-              expect: 'x: 3'
+              expect: 'x: 3',
             },
             {
               send: 'e:1\n',
-              expect: 'eek'
+              expect: 'eek',
             },
             {
               send: 'foo bar\n',
-              expect: 'FOO: bar'
-            }
+              expect: 'FOO: bar',
+            },
           ]
 
           sock.write('seneca.quit()\n')
@@ -179,7 +177,7 @@ describe('repl', function() {
 
             //console.log('SEND: '+step.send)
             sock.write(step.send)
-            setTimeout(function() {
+            setTimeout(function () {
               //console.log('RESULT: '+result)
               //console.log('EXPECT: '+step.expect)
               if (step.expect) {
@@ -189,7 +187,7 @@ describe('repl', function() {
             }, 22 * tmx)
           }
 
-          setTimeout(function() {
+          setTimeout(function () {
             expect(result).to.contain('seneca')
             nextStep()
           }, 222 * tmx)
