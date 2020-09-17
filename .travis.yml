@@ -21,7 +21,6 @@ before_script:
 
 script:
   - npm test
-  - npm audit
 
 after_script:
   - npm run coveralls
