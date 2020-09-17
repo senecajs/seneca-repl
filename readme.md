@@ -120,6 +120,61 @@ There are some command aliases for common actions:
 * `depth <number>`: set depth of Util.inspect printing
 
 
+
+<!--START:options-->
+
+
+## Options
+
+* `test` : boolean <i><small>false</small></i>
+
+
+Set plugin options when loading with:
+```js
+
+
+seneca.use('doc', { name: value, ... })
+
+
+```
+
+
+<small>Note: <code>foo.bar</code> in the list above means 
+<code>{ foo: { bar: ... } }</code></small> 
+
+
+
+<!--END:options-->
+
+
+<!--START:action-list-->
+
+
+## Action Patterns
+
+* [add:cmd,sys:repl](#-addcmdsysrepl-)
+
+
+<!--END:action-list-->
+
+<!--START:action-desc-->
+
+
+## Action Descriptions
+
+### &laquo; `add:cmd,sys:repl` &raquo;
+
+Add a REPL command dynamically
+
+
+
+----------
+
+
+<!--END:action-desc-->
+
+
+
 ## Contributing
 The [Senecajs org][] encourages open participation. If you feel you
 can help in any way, be it with documentation, examples, extra

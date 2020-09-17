@@ -1,5 +1,4 @@
 language: node_js
-sudo: false
 
 env:
   global:
@@ -11,6 +10,7 @@ env:
     - SENECA_VER=senecajs/seneca
 
 node_js:
+  - '14'
   - '13'
   - '12'
   - '10'

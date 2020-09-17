@@ -94,6 +94,13 @@ describe('repl', function() {
           reply(new Error('eek'))
         })
         .use('..', { port: 0 })
+        .act('sys:repl,add:cmd',{
+          name: 'foo',
+          action: function(cmd,argtext,context,options,respond) {
+            return respond(null,'FOO:'+argtext)
+          }
+        })
+
         .ready(function() {
           var port = this.export('repl/address').port
 
@@ -153,6 +160,10 @@ describe('repl', function() {
             {
               send: 'e:1\n',
               expect: 'eek'
+            },
+            {
+              send: 'foo bar\n',
+              expect: 'FOO: bar'
             }
           ]
 

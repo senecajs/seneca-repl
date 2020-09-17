@@ -54,6 +54,25 @@ function repl(options) {
   var export_address = {}
 
   var cmd_map = Object.assign({},default_cmds,options.cmds)
+
+  seneca.add('sys:repl,add:cmd',add_cmd)
+
+
+  function add_cmd(msg, reply) {
+    var name = msg.name
+    var action = msg.action
+
+    if( 'string' === typeof(name) && 'function' === typeof(action)) {
+      cmd_map[name] = action
+    }
+    else {
+      this.fail('invalid-cmd')
+    }
+    
+    reply()
+  }
+  add_cmd.desc = 'Add a REPL command dynamically'
+
   
   seneca.init(function(reply) {
 
