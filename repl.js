@@ -12,6 +12,8 @@ const Vm = require('vm')
 
 const Hoek = require('@hapi/hoek')
 
+const Inks = require('inks')
+
 module.exports = repl
 module.exports.defaults = {
   port: 30303,
@@ -56,6 +58,7 @@ function repl(options) {
   var cmd_map = Object.assign({}, default_cmds, options.cmds)
 
   seneca.add('sys:repl,add:cmd', add_cmd)
+  seneca.add('sys:repl,echo:true', (msg,reply)=>reply(msg))
 
   function add_cmd(msg, reply) {
     var name = msg.name
@@ -192,22 +195,43 @@ function make_intern() {
           }
 
           if (!execute_action(cmdtext)) {
-            execute_script(cmdtext)
+            context.s.ready(()=>{
+              execute_script(cmdtext)
+            })
           }
 
           function execute_action(cmdtext) {
             try {
-              var args = seneca.util.Jsonic(cmdtext)
-              context.s.act(args, function (err, out) {
-                if (out && !r.context.act_trace) {
-                  out =
-                    out && out.entity$
+              var msg = cmdtext
+              var m = msg.split(/\s*=>\s*/)
+              if(2===m.length) {
+                msg = m[0]
+              }
+              
+              var injected_msg = Inks(msg,context)
+              var args = seneca.util.Jsonic(injected_msg)
+              context.s.ready(()=>{
+                context.s.act(args, function (err, out) {
+                  context.err = err
+                  context.out = out
+
+                  if(m[1]) {
+                    var ma = m[1].split(/\s*=\s*/)
+                    if(2===ma.length) {
+                      context[ma[0]]=Hoek.reach({out:out,err:err},ma[1])
+                    }
+                  }
+                  
+                  if (out && !r.context.act_trace) {
+                    out =
+                      out && out.entity$
                       ? out
                       : context.inspekt(sd.util.clean(out))
-                  socket.write(out + '\n')
-                } else if (err) {
-                  socket.write(context.inspekt(err) + '\n')
-                }
+                    socket.write(out + '\n')
+                  } else if (err) {
+                    socket.write(context.inspekt(err) + '\n')
+                  }
+                })
               })
               return true
             } catch (e) {

@@ -163,6 +163,14 @@ describe('repl', function () {
               send: 'foo bar\n',
               expect: 'FOO: bar',
             },
+            {
+              send: 'a=1\n',
+              expect: '1',
+            },
+            {
+              send: 'a:`$.a`,x:2\n',
+              expect: 'x: 2',
+            },
           ]
 
           sock.write('seneca.quit()\n')
@@ -184,7 +192,7 @@ describe('repl', function () {
                 expect(result).to.contain(step.expect)
               }
               nextStep()
-            }, 22 * tmx)
+            }, 222 * tmx)
           }
 
           setTimeout(function () {
