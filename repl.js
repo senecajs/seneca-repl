@@ -1,6 +1,8 @@
 /* Copyright © 2015-2020 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
+// TODO: make listener start flag controlled, useful tests
+
 // NOTE: vorpal is not used server-side to keep things lean
 
 const Net = require('net')
@@ -44,6 +46,7 @@ const default_cmds = {
   set: intern.cmd_set,
   alias: intern.cmd_alias,
   trace: intern.cmd_trace,
+  help: intern.cmd_help,
 }
 
 function repl(options) {
@@ -145,6 +148,7 @@ function make_intern() {
           act_trace: false,
           act_index_map: {},
           act_index: 1000000,
+          cmd_map: cmd_map,
         })
 
         sd.on_act_in = intern.make_on_act_in(r.context)
@@ -432,6 +436,10 @@ function make_intern() {
     cmd_trace: function (cmd, argtext, context, options, respond) {
       context.act_trace = !context.act_trace
       return respond()
+    },
+
+    cmd_help: function (cmd, argtext, context, options, respond) {
+      return respond(null, context.cmd_map)
     },
   }
 }
