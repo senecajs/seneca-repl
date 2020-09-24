@@ -58,7 +58,7 @@ function repl(options) {
   var cmd_map = Object.assign({}, default_cmds, options.cmds)
 
   seneca.add('sys:repl,add:cmd', add_cmd)
-  seneca.add('sys:repl,echo:true', (msg,reply)=>reply(msg))
+  seneca.add('sys:repl,echo:true', (msg, reply) => reply(msg))
 
   function add_cmd(msg, reply) {
     var name = msg.name
@@ -195,7 +195,7 @@ function make_intern() {
           }
 
           if (!execute_action(cmdtext)) {
-            context.s.ready(()=>{
+            context.s.ready(() => {
               execute_script(cmdtext)
             })
           }
@@ -204,29 +204,29 @@ function make_intern() {
             try {
               var msg = cmdtext
               var m = msg.split(/\s*=>\s*/)
-              if(2===m.length) {
+              if (2 === m.length) {
                 msg = m[0]
               }
-              
-              var injected_msg = Inks(msg,context)
+
+              var injected_msg = Inks(msg, context)
               var args = seneca.util.Jsonic(injected_msg)
-              context.s.ready(()=>{
+              context.s.ready(() => {
                 context.s.act(args, function (err, out) {
                   context.err = err
                   context.out = out
 
-                  if(m[1]) {
+                  if (m[1]) {
                     var ma = m[1].split(/\s*=\s*/)
-                    if(2===ma.length) {
-                      context[ma[0]]=Hoek.reach({out:out,err:err},ma[1])
+                    if (2 === ma.length) {
+                      context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
                     }
                   }
-                  
+
                   if (out && !r.context.act_trace) {
                     out =
                       out && out.entity$
-                      ? out
-                      : context.inspekt(sd.util.clean(out))
+                        ? out
+                        : context.inspekt(sd.util.clean(out))
                     socket.write(out + '\n')
                   } else if (err) {
                     socket.write(context.inspekt(err) + '\n')
