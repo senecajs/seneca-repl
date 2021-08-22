@@ -1,4 +1,4 @@
-/* Copyright © 2015-2020 Richard Rodger and other contributors, MIT License. */
+/* Copyright © 2015-2021 Richard Rodger and other contributors, MIT License. */
 'use strict'
 
 // TODO: make listener start flag controlled, useful tests
@@ -43,6 +43,8 @@ const default_cmds = {
   plain: intern.cmd_plain,
   quit: intern.cmd_quit,
   list: intern.cmd_list,
+  find: intern.cmd_find,
+  prior: intern.cmd_prior,
   history: intern.cmd_history,
   log: intern.cmd_log,
   set: intern.cmd_set,
@@ -52,17 +54,17 @@ const default_cmds = {
 }
 
 function repl(options) {
-  var seneca = this
-  var export_address = {}
+  let seneca = this
+  let export_address = {}
 
-  var cmd_map = Object.assign({}, default_cmds, options.cmds)
+  let cmd_map = Object.assign({}, default_cmds, options.cmds)
 
   seneca.add('sys:repl,add:cmd', add_cmd)
   seneca.add('sys:repl,echo:true', (msg, reply) => reply(msg))
 
   function add_cmd(msg, reply) {
-    var name = msg.name
-    var action = msg.action
+    let name = msg.name
+    let action = msg.action
 
     if ('string' === typeof name && 'function' === typeof action) {
       cmd_map[name] = action
@@ -75,10 +77,11 @@ function repl(options) {
   add_cmd.desc = 'Add a REPL command dynamically'
 
   seneca.init(function (reply) {
-    var server = intern.start_repl(seneca, options, cmd_map)
+    try {
+    let server = intern.start_repl(seneca, options, cmd_map)
 
     server.on('listening', function () {
-      var address = server.address()
+      let address = server.address()
 
       export_address.port = address.port
       export_address.host = address.address
@@ -95,6 +98,9 @@ function repl(options) {
     server.on('error', function (err) {
       seneca.log.error(err)
     })
+    }catch(e) {
+      console.log(e)
+    }
   })
 
   return {
@@ -108,16 +114,17 @@ function repl(options) {
 function make_intern() {
   return {
     start_repl: function (seneca, options, cmd_map) {
-      var alias = options.alias
+      let alias = options.alias
 
-      var server = Net.createServer(function (socket) {
+      let server = Net.createServer(function (socket) {
+        let sd = seneca.root.delegate({ repl$: true, fatal$: false })
+
+        // TODO: pass this up to init so it can fail properly
         socket.on('error', function (err) {
-          sd.log.debug('repl-socket', err)
+          sd.log.error('repl-socket', err)
         })
 
-        var sd = seneca.root.delegate({ repl$: true, fatal$: false })
-
-        var r = Repl.start({
+        let r = Repl.start({
           prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
           input: socket,
           output: socket,
@@ -131,7 +138,7 @@ function make_intern() {
         })
 
         r.on('error', function (err) {
-          sd.log.debug('repl', err)
+          sd.log.error('repl', err)
         })
 
         Object.assign(r.context, {
@@ -162,7 +169,7 @@ function make_intern() {
 
         function evaluate(cmdtext, context, filename, respond) {
           const inspect = context.inspekt
-          var cmd_history = context.history
+          let cmd_history = context.history
 
           cmdtext = cmdtext.trim()
 
@@ -176,10 +183,10 @@ function make_intern() {
             cmdtext = alias[cmdtext]
           }
 
-          var m = cmdtext.match(/^(\S+)/)
-          var cmd = m && m[1]
+          let m = cmdtext.match(/^(\S+)/)
+          let cmd = m && m[1]
 
-          var argtext =
+          let argtext =
             'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
 
           // NOTE: alias can also apply just to command
@@ -187,7 +194,7 @@ function make_intern() {
             cmd = alias[cmd]
           }
 
-          var cmd_func = cmd_map[cmd]
+          let cmd_func = cmd_map[cmd]
           // console.log('CMD', cmd, !!cmd_func)
 
           if (cmd_func) {
@@ -202,21 +209,21 @@ function make_intern() {
 
           function execute_action(cmdtext) {
             try {
-              var msg = cmdtext
-              var m = msg.split(/\s*=>\s*/)
+              let msg = cmdtext
+              let m = msg.split(/\s*=>\s*/)
               if (2 === m.length) {
                 msg = m[0]
               }
 
-              var injected_msg = Inks(msg, context)
-              var args = seneca.util.Jsonic(injected_msg)
+              let injected_msg = Inks(msg, context)
+              let args = seneca.util.Jsonic(injected_msg)
               context.s.ready(() => {
                 context.s.act(args, function (err, out) {
                   context.err = err
                   context.out = out
 
                   if (m[1]) {
-                    var ma = m[1].split(/\s*=\s*/)
+                    let ma = m[1].split(/\s*=\s*/)
                     if (2 === ma.length) {
                       context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
                     }
@@ -244,11 +251,11 @@ function make_intern() {
 
           function execute_script(cmdtext) {
             try {
-              var script = Vm.createScript(cmdtext, {
+              let script = Vm.createScript(cmdtext, {
                 filename: filename,
                 displayErrors: false,
               })
-              var result = script.runInContext(context, {
+              let result = script.runInContext(context, {
                 displayErrors: false,
               })
 
@@ -267,12 +274,12 @@ function make_intern() {
     parse_option: function (optpath, val) {
       optpath += '.'
 
-      var part = /([^.]+)\.+/g
-      var m
-      var out = {}
-      var cur = out
-      var po = out
-      var pn
+      let part = /([^.]+)\.+/g
+      let m
+      let out = {}
+      let cur = out
+      let po = out
+      let pn
 
       while (null != (m = part.exec(optpath))) {
         cur[m[1]] = {}
@@ -300,8 +307,8 @@ function make_intern() {
     make_log_handler: function (context) {
       return function log_handler(data) {
         if (context.log_capture) {
-          var seneca = context.seneca
-          var out = seneca.__build_test_log__$$
+          let seneca = context.seneca
+          let out = seneca.__build_test_log__$$
             ? seneca.__build_test_log__$$(seneca, 'test', data)
             : context.inspekt(data).replace(/\n/g, ' ')
 
@@ -319,7 +326,7 @@ function make_intern() {
       return function on_act_in(actdef, args, meta) {
         if (!context.act_trace) return
 
-        var actid = (meta || args.meta$ || {}).id
+        let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
             intern.fmt_index(context.act_index) +
@@ -346,14 +353,14 @@ function make_intern() {
       return function on_act_out(actdef, out, meta) {
         if (!context.act_trace) return
 
-        var actid = (meta || out.meta$ || {}).id
+        let actid = (meta || out.meta$ || {}).id
 
         out =
           out && out.entity$
             ? out
             : context.inspekt(context.seneca.util.clean(out))
 
-        var cur_index = context.act_index_map[actid]
+        let cur_index = context.act_index_map[actid]
         context.socket.write(
           'OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n'
         )
@@ -364,10 +371,10 @@ function make_intern() {
       return function on_act_err(actdef, err, meta) {
         if (!context.act_trace) return
 
-        var actid = (meta || err.meta$ || {}).id
+        let actid = (meta || err.meta$ || {}).id
 
         if (actid) {
-          var cur_index = context.act_index_map[actid]
+          let cur_index = context.act_index_map[actid]
           context.socket.write(
             'ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n'
           )
@@ -376,14 +383,14 @@ function make_intern() {
     },
 
     cmd_get: function (cmd, argtext, context, options, respond) {
-      var option_path = argtext.trim()
-      var options = context.seneca.options()
-      var out = Hoek.reach(options, option_path)
+      let option_path = argtext.trim()
+      let sopts = context.seneca.options()
+      let out = Hoek.reach(sopts, option_path)
       return respond(null, out)
     },
 
     cmd_depth: function (cmd, argtext, context, options, respond) {
-      var depth = parseInt(argtext, 10)
+      let depth = parseInt(argtext, 10)
       depth = isNaN(depth) ? null : depth
       context.inspekt = intern.make_inspect(context, {
         ...options.inspect,
@@ -402,17 +409,46 @@ function make_intern() {
     },
 
     cmd_list: function (cmd, argtext, context, options, respond) {
-      var narrow = context.seneca.util.Jsonic(argtext)
+      let narrow = context.seneca.util.Jsonic(argtext)
       respond(null, context.seneca.list(narrow))
     },
 
+    cmd_find: function (cmd, argtext, context, options, respond) {
+      let narrow = context.seneca.util.Jsonic(argtext)
+      respond(null, context.seneca.find(narrow))
+    },
+
+    cmd_prior: function (cmd, argtext, context, options, respond) {
+      let pdesc = (actdef)=>{
+        let d = {
+          id: actdef.id,
+          plugin: actdef.plugin_fullname,
+          pattern: actdef.pattern
+        }
+        if(actdef.callpoint) {
+          d.callpoint = actdef.callpoint
+        }
+        return d
+      }
+
+      let narrow = context.seneca.util.Jsonic(argtext)
+      let actdef = context.seneca.find(narrow)
+      let priors = [pdesc(actdef)]
+      let pdef = actdef
+      while(null != (pdef = pdef.priordef)) {
+        priors.push(pdesc(pdef))
+      }
+
+      respond(null, priors)
+    },
+    
     cmd_history: function (cmd, argtext, context, options, respond) {
       return respond(null, context.history.join('\n'))
     },
 
     cmd_log: function (cmd, argtext, context, options, respond) {
       context.log_capture = !context.log_capture
-      var m = null
+      let m = null
 
       if (!context.log_capture) {
         context.log_match = null
@@ -427,10 +463,10 @@ function make_intern() {
     },
 
     cmd_set: function (cmd, argtext, context, options, respond) {
-      var m = argtext.match(/^\s*(\S+)\s+(\S+)/)
+      let m = argtext.match(/^\s*(\S+)\s+(\S+)/)
 
       if (m) {
-        var setopt = intern.parse_option(
+        let setopt = intern.parse_option(
           m[1],
           context.seneca.util.Jsonic('$:' + m[2]).$
         )
@@ -447,7 +483,7 @@ function make_intern() {
     },
 
     cmd_alias: function (cmd, argtext, context, options, respond) {
-      var m = argtext.match(/^\s*(\S+)\s+(.+)[\r\n]?/)
+      let m = argtext.match(/^\s*(\S+)\s+(.+)[\r\n]?/)
 
       if (m) {
         context.alias[m[1]] = m[2]
