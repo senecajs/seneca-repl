@@ -82,23 +82,23 @@ function repl(options) {
 
       server.on('listening', function () {
         let address = server.address()
-        
+
         export_address.port = address.port
         export_address.host = address.address
         export_address.family = address.family
-        
+
         seneca.log.info({
           kind: 'notice',
           notice: 'REPL listening on ' + address.address + ':' + address.port,
         })
-        
+
         reply()
       })
-      
+
       server.on('error', function (err) {
         seneca.log.error(err)
       })
-    } catch(e) {
+    } catch (e) {
       console.log(e)
     }
   })
@@ -250,7 +250,6 @@ function make_intern() {
           }
 
           function execute_script(cmdtext) {
-
             try {
               let script = Vm.createScript(cmdtext, {
                 filename: filename,
@@ -263,39 +262,36 @@ function make_intern() {
 
               result = result === seneca ? null : result
               respond(null, result)
-            }
-            catch(e) {
-              if('SyntaxError' === e.name && e.message.startsWith('await')) {
-                let wrapper = '(async () => { return ('+cmdtext+') })()'
+            } catch (e) {
+              if ('SyntaxError' === e.name && e.message.startsWith('await')) {
+                let wrapper = '(async () => { return (' + cmdtext + ') })()'
 
                 try {
                   let script = Vm.createScript(wrapper, {
                     filename: filename,
                     displayErrors: false,
                   })
-                  
+
                   let out = script.runInContext(context, {
                     displayErrors: false,
                   })
 
                   out
-                    .then(result=>{
+                    .then((result) => {
                       result = result === seneca ? null : result
                       respond(null, result)
                     })
-                    .catch(e => {
+                    .catch((e) => {
                       return respond(e.message)
                     })
-                }
-                catch(e) {
+                } catch (e) {
                   return respond(e.message)
                 }
-              }
-              else {
+              } else {
                 return respond(e.message)
               }
             }
-              
+
             //   // let out = script.runInContext(context, {
 
             //   // out
@@ -463,13 +459,13 @@ function make_intern() {
     },
 
     cmd_prior: function (cmd, argtext, context, options, respond) {
-      let pdesc = (actdef)=>{
+      let pdesc = (actdef) => {
         let d = {
           id: actdef.id,
           plugin: actdef.plugin_fullname,
-          pattern: actdef.pattern
+          pattern: actdef.pattern,
         }
-        if(actdef.callpoint) {
+        if (actdef.callpoint) {
           d.callpoint = actdef.callpoint
         }
         return d
@@ -479,13 +475,13 @@ function make_intern() {
       let actdef = context.seneca.find(narrow)
       let priors = [pdesc(actdef)]
       let pdef = actdef
-      while(null != (pdef = pdef.priordef)) {
+      while (null != (pdef = pdef.priordef)) {
         priors.push(pdesc(pdef))
       }
 
       respond(null, priors)
     },
-    
+
     cmd_history: function (cmd, argtext, context, options, respond) {
       return respond(null, context.history.join('\n'))
     },

@@ -32,7 +32,7 @@ describe('repl', function () {
   })
 
   it('cmd_get', async function () {
-    var si = await Seneca({tag:'foo'}).test()
+    var si = await Seneca({ tag: 'foo' }).test()
     Plugin.intern.cmd_get('get', 'tag', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
       expect(out).equal('foo')

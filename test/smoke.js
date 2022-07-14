@@ -2,7 +2,7 @@ require('seneca')()
   .use('promisify')
   .use('entity')
   .use('..')
-  .message('a:1', async (msg)=>({x:msg.x}))
+  .message('a:1', async (msg) => ({ x: msg.x }))
   .ready(function () {
     console.log(this.export('repl/address'))
   })
