@@ -32,15 +32,15 @@ describe('repl', function () {
   })
 
   it('cmd_get', async function () {
-    var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
-    Plugin.intern.cmd_get('get', 'foo', { seneca: si }, {}, (err, out) => {
+    var si = await Seneca({tag:'foo'}).test()
+    Plugin.intern.cmd_get('get', 'tag', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
-      expect(out).equal(1)
+      expect(out).equal('foo')
     })
   })
 
   it('cmd_depth', async function () {
-    var si = await Seneca({ foo: 1, bar: { zed: 2 } }).test()
+    var si = await Seneca().test()
     Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
       expect(err).not.exists()
       expect(out).equal('Inspection depth set to 4')
@@ -183,11 +183,11 @@ describe('repl', function () {
 
             result = ''
 
-            //console.log('SEND: '+step.send)
+            // console.log('SEND: '+step.send)
             sock.write(step.send)
             setTimeout(function () {
-              //console.log('RESULT: '+result)
-              //console.log('EXPECT: '+step.expect)
+              // console.log('RESULT: '+result)
+              // console.log('EXPECT: '+step.expect)
               if (step.expect) {
                 expect(result).to.contain(step.expect)
               }

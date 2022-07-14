@@ -250,17 +250,26 @@ function make_intern() {
           }
 
           function execute_script(cmdtext) {
+            let wrapper = '(async () => { return ('+cmdtext+') })()'
             try {
-              let script = Vm.createScript(cmdtext, {
+              // let script = Vm.createScript(cmdtext, {
+              let script = Vm.createScript(wrapper, {
                 filename: filename,
                 displayErrors: false,
               })
-              let result = script.runInContext(context, {
+
+              let out = script.runInContext(context, {
                 displayErrors: false,
               })
 
-              result = result === seneca ? null : result
-              respond(null, result)
+              out
+                .then(result=>{
+                  result = result === seneca ? null : result
+                  respond(null, result)
+                })
+                .catch(e => {
+                  return respond(e.message)
+                })
             } catch (e) {
               return respond(e.message)
             }
