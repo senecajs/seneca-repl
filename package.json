@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "5.0.1",
+  "version": "5.1.0",
   "main": "repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
