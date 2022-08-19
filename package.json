@@ -38,15 +38,15 @@
     "url": "https://github.com/senecajs/seneca-repl.git"
   },
   "dependencies": {
-    "@hapi/hoek": "^9.1.0",
-    "@seneca/vorpal": "^2.1.1",
+    "@hapi/hoek": "^10.0.1",
+    "@seneca/vorpal": "^2.2.0",
     "inks": "^2.0.0"
   },
   "devDependencies": {
-    "@hapi/code": "^8.0.2",
+    "@hapi/code": "^9.0.1",
     "@hapi/joi": "^17.1.1",
-    "@hapi/lab": "^24.0.0",
-    "acorn": "^8.7.1",
+    "@hapi/lab": "^25.0.1",
+    "acorn": "^8.8.0",
     "async": "^3.2.4",
     "coveralls": "^3.1.1",
     "gex": "^4.0.1",

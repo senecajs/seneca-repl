@@ -1,4 +1,5 @@
 require('seneca')()
+  .test()
   .use('promisify')
   .use('entity')
   .use('..')
