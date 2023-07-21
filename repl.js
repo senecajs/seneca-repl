@@ -210,6 +210,8 @@ function make_intern() {
           function execute_action(cmdtext) {
             try {
               let msg = cmdtext
+
+              // TODO: use a different operator! will conflict with => !!!
               let m = msg.split(/\s*=>\s*/)
               if (2 === m.length) {
                 msg = m[0]
