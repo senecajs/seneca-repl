@@ -171,6 +171,10 @@ describe('repl', function () {
               send: 'a:`$.a`,x:2\n',
               expect: 'x: 2',
             },
+            {
+              send: '1+1\n',
+              expect: '2',
+            },
           ]
 
           sock.write('seneca.quit()\n')

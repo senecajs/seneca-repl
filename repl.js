@@ -5,6 +5,8 @@
 
 // NOTE: vorpal is not used server-side to keep things lean
 
+// https://stackoverflow.com/questions/67518218/custom-node-js-repl-input-output-stream
+
 const Net = require('net')
 const Repl = require('repl')
 const Util = require('util')
@@ -14,26 +16,6 @@ const Hoek = require('@hapi/hoek')
 
 const Inks = require('inks')
 
-module.exports = repl
-module.exports.defaults = {
-  port: 30303,
-  host: '127.0.0.1',
-  depth: 11,
-  alias: {
-    stats: 'seneca.stats()',
-    'stats full': 'seneca.stats({summary:false})',
-
-    // DEPRECATED
-    'stats/full': 'seneca.stats({summary:false})',
-
-    // TODO: there should be a seneca.tree()
-    tree: 'seneca.root.private$.actrouter',
-  },
-  inspect: {},
-  cmds: {
-    // custom cmds
-  },
-}
 
 const intern = (repl.intern = make_intern())
 
@@ -53,15 +35,242 @@ const default_cmds = {
   help: intern.cmd_help,
 }
 
+
+
 function repl(options) {
   let seneca = this
   let export_address = {}
 
   let cmd_map = Object.assign({}, default_cmds, options.cmds)
 
+  seneca.add('sys:repl,use:repl', use_repl)
+  seneca.add('sys:repl,send:cmd', send_cmd)
+  
   seneca.add('sys:repl,add:cmd', add_cmd)
   seneca.add('sys:repl,echo:true', (msg, reply) => reply(msg))
 
+  
+  function use_repl(msg, reply) {
+    let repl_id = msg.id
+    let input = msg.input
+    let output = msg.output
+
+    // NEXT: store repl instance using repl_id, incl streams
+    // use the sreams to send cmds
+    
+    let sd = seneca.root.delegate({ repl$: true, fatal$: false })
+
+    let alias = options.alias
+    
+    let r = Repl.start({
+      prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+      input,
+      output,
+      terminal: false,
+      useGlobal: false,
+      eval: evaluate,
+    })
+
+    r.on('exit', function () {
+      // socket.end()
+      input.end()
+      output.end()
+    })
+
+    r.on('error', function (err) {
+      sd.log.error('repl', err)
+    })
+
+    Object.assign(r.context, {
+      // NOTE: don't trigger funnies with a .inspect property
+      inspekt: intern.make_inspect(r.context, {
+        ...options.inspect,
+        depth: options.depth,
+      }),
+      // socket: socket,
+      input,
+      output,
+      s: sd,
+      seneca: sd,
+      plain: false,
+      history: [],
+      log_capture: false,
+      log_match: null,
+      alias: alias,
+      act_trace: false,
+      act_index_map: {},
+      act_index: 1000000,
+      cmd_map: cmd_map,
+    })
+
+    sd.on_act_in = intern.make_on_act_in(r.context)
+    sd.on_act_out = intern.make_on_act_out(r.context)
+    sd.on_act_err = intern.make_on_act_err(r.context)
+
+    sd.on('log', intern.make_log_handler(r.context))
+
+    function evaluate(cmdtext, context, filename, respond) {
+      const inspect = context.inspekt
+      let cmd_history = context.history
+
+      cmdtext = cmdtext.trim()
+
+      if ('last' === cmdtext && 0 < cmd_history.length) {
+        cmdtext = cmd_history[cmd_history.length - 1]
+      } else {
+        cmd_history.push(cmdtext)
+      }
+
+      if (alias[cmdtext]) {
+        cmdtext = alias[cmdtext]
+      }
+
+      let m = cmdtext.match(/^(\S+)/)
+      let cmd = m && m[1]
+
+      let argtext =
+          'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
+
+      // NOTE: alias can also apply just to command
+      if (alias[cmd]) {
+        cmd = alias[cmd]
+      }
+
+      let cmd_func = cmd_map[cmd]
+      // console.log('CMD', cmd, !!cmd_func)
+
+      if (cmd_func) {
+        return cmd_func(cmd, argtext, context, options, respond)
+      }
+
+      if (!execute_action(cmdtext)) {
+        context.s.ready(() => {
+          execute_script(cmdtext)
+        })
+      }
+
+      function execute_action(cmdtext) {
+        try {
+          let msg = cmdtext
+
+          // TODO: use a different operator! will conflict with => !!!
+          let m = msg.split(/\s*=>\s*/)
+          if (2 === m.length) {
+            msg = m[0]
+          }
+
+          let injected_msg = Inks(msg, context)
+          let args = seneca.util.Jsonic(injected_msg)
+
+          // console.log('JSONIC: ',injected_msg,args)
+          if( null == args || Array.isArray(args) || 'object' !== typeof args) {
+            return false
+          }
+          
+          context.s.ready(() => {
+            context.s.act(args, function (err, out) {
+              context.err = err
+              context.out = out
+
+              if (m[1]) {
+                let ma = m[1].split(/\s*=\s*/)
+                if (2 === ma.length) {
+                  context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
+                }
+              }
+
+              if (out && !r.context.act_trace) {
+                out =
+                  out && out.entity$
+                  ? out
+                  : context.inspekt(sd.util.clean(out))
+                // socket.write(out + '\n')
+                output.write(out + '\n')
+              } else if (err) {
+                // socket.write(context.inspekt(err) + '\n')
+                output.write(context.inspekt(err) + '\n')
+              }
+            })
+          })
+          return true
+        } catch (e) {
+          // Not jsonic format, so try to execute as a script
+          // TODO: check actual jsonic parse error so we can give better error
+          // message if not
+          return false
+        }
+      }
+
+      function execute_script(cmdtext) {
+        try {
+          let script = Vm.createScript(cmdtext, {
+            filename: filename,
+            displayErrors: false,
+          })
+
+          let result = script.runInContext(context, {
+            displayErrors: false,
+          })
+
+          result = result === seneca ? null : result
+          respond(null, result)
+        } catch (e) {
+          if ('SyntaxError' === e.name && e.message.startsWith('await')) {
+            let wrapper = '(async () => { return (' + cmdtext + ') })()'
+
+            try {
+              let script = Vm.createScript(wrapper, {
+                filename: filename,
+                displayErrors: false,
+              })
+
+              let out = script.runInContext(context, {
+                displayErrors: false,
+              })
+
+              out
+                .then((result) => {
+                  result = result === seneca ? null : result
+                  respond(null, result)
+                })
+                .catch((e) => {
+                  return respond(e.message)
+                })
+            } catch (e) {
+              return respond(e.message)
+            }
+          } else {
+            return respond(e.message)
+          }
+        }
+
+        //   // let out = script.runInContext(context, {
+
+        //   // out
+        //   //  .then(result=>{
+        //   //  })
+        //   //  .catch(e => {
+        //   //    return respond(e.message)
+        //   //  })
+        // } catch (e) {
+        //   console.log(e)
+        //   return respond(e.message)
+        // }
+      }
+    }
+    
+    reply()
+  }
+
+
+  function send_cmd(msg, reply) {
+
+    // lookup repl by id, using steams to submit cmd and send back response
+    
+    reply()
+  }
+  
+  
   function add_cmd(msg, reply) {
     let name = msg.name
     let action = msg.action
@@ -114,200 +323,21 @@ function repl(options) {
 function make_intern() {
   return {
     start_repl: function (seneca, options, cmd_map) {
-      let alias = options.alias
+      // let alias = options.alias
 
       let server = Net.createServer(function (socket) {
-        let sd = seneca.root.delegate({ repl$: true, fatal$: false })
 
         // TODO: pass this up to init so it can fail properly
         socket.on('error', function (err) {
-          sd.log.error('repl-socket', err)
+          seneca.log.error('repl-socket', err)
         })
 
-        let r = Repl.start({
-          prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+        seneca.act('sys:repl,use:repl',{
+          id: options.host+':'+options.port,
           input: socket,
           output: socket,
-          terminal: false,
-          useGlobal: false,
-          eval: evaluate,
         })
-
-        r.on('exit', function () {
-          socket.end()
-        })
-
-        r.on('error', function (err) {
-          sd.log.error('repl', err)
-        })
-
-        Object.assign(r.context, {
-          // NOTE: don't trigger funnies with a .inspect property
-          inspekt: intern.make_inspect(r.context, {
-            ...options.inspect,
-            depth: options.depth,
-          }),
-          socket: socket,
-          s: sd,
-          seneca: sd,
-          plain: false,
-          history: [],
-          log_capture: false,
-          log_match: null,
-          alias: alias,
-          act_trace: false,
-          act_index_map: {},
-          act_index: 1000000,
-          cmd_map: cmd_map,
-        })
-
-        sd.on_act_in = intern.make_on_act_in(r.context)
-        sd.on_act_out = intern.make_on_act_out(r.context)
-        sd.on_act_err = intern.make_on_act_err(r.context)
-
-        sd.on('log', intern.make_log_handler(r.context))
-
-        function evaluate(cmdtext, context, filename, respond) {
-          const inspect = context.inspekt
-          let cmd_history = context.history
-
-          cmdtext = cmdtext.trim()
-
-          if ('last' === cmdtext && 0 < cmd_history.length) {
-            cmdtext = cmd_history[cmd_history.length - 1]
-          } else {
-            cmd_history.push(cmdtext)
-          }
-
-          if (alias[cmdtext]) {
-            cmdtext = alias[cmdtext]
-          }
-
-          let m = cmdtext.match(/^(\S+)/)
-          let cmd = m && m[1]
-
-          let argtext =
-            'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
-
-          // NOTE: alias can also apply just to command
-          if (alias[cmd]) {
-            cmd = alias[cmd]
-          }
-
-          let cmd_func = cmd_map[cmd]
-          // console.log('CMD', cmd, !!cmd_func)
-
-          if (cmd_func) {
-            return cmd_func(cmd, argtext, context, options, respond)
-          }
-
-          if (!execute_action(cmdtext)) {
-            context.s.ready(() => {
-              execute_script(cmdtext)
-            })
-          }
-
-          function execute_action(cmdtext) {
-            try {
-              let msg = cmdtext
-
-              // TODO: use a different operator! will conflict with => !!!
-              let m = msg.split(/\s*=>\s*/)
-              if (2 === m.length) {
-                msg = m[0]
-              }
-
-              let injected_msg = Inks(msg, context)
-              let args = seneca.util.Jsonic(injected_msg)
-              context.s.ready(() => {
-                context.s.act(args, function (err, out) {
-                  context.err = err
-                  context.out = out
-
-                  if (m[1]) {
-                    let ma = m[1].split(/\s*=\s*/)
-                    if (2 === ma.length) {
-                      context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
-                    }
-                  }
-
-                  if (out && !r.context.act_trace) {
-                    out =
-                      out && out.entity$
-                        ? out
-                        : context.inspekt(sd.util.clean(out))
-                    socket.write(out + '\n')
-                  } else if (err) {
-                    socket.write(context.inspekt(err) + '\n')
-                  }
-                })
-              })
-              return true
-            } catch (e) {
-              // Not jsonic format, so try to execute as a script
-              // TODO: check actual jsonic parse error so we can give better error
-              // message if not
-              return false
-            }
-          }
-
-          function execute_script(cmdtext) {
-            try {
-              let script = Vm.createScript(cmdtext, {
-                filename: filename,
-                displayErrors: false,
-              })
-
-              let result = script.runInContext(context, {
-                displayErrors: false,
-              })
-
-              result = result === seneca ? null : result
-              respond(null, result)
-            } catch (e) {
-              if ('SyntaxError' === e.name && e.message.startsWith('await')) {
-                let wrapper = '(async () => { return (' + cmdtext + ') })()'
-
-                try {
-                  let script = Vm.createScript(wrapper, {
-                    filename: filename,
-                    displayErrors: false,
-                  })
-
-                  let out = script.runInContext(context, {
-                    displayErrors: false,
-                  })
-
-                  out
-                    .then((result) => {
-                      result = result === seneca ? null : result
-                      respond(null, result)
-                    })
-                    .catch((e) => {
-                      return respond(e.message)
-                    })
-                } catch (e) {
-                  return respond(e.message)
-                }
-              } else {
-                return respond(e.message)
-              }
-            }
-
-            //   // let out = script.runInContext(context, {
-
-            //   // out
-            //   //  .then(result=>{
-            //   //  })
-            //   //  .catch(e => {
-            //   //    return respond(e.message)
-            //   //  })
-            // } catch (e) {
-            //   console.log(e)
-            //   return respond(e.message)
-            // }
-          }
-        }
+        
       }).listen(options.port, options.host)
 
       return server
@@ -545,3 +575,27 @@ function make_intern() {
     },
   }
 }
+
+
+repl.defaults = {
+  port: 30303,
+  host: '127.0.0.1',
+  depth: 11,
+  alias: {
+    stats: 'seneca.stats()',
+    'stats full': 'seneca.stats({summary:false})',
+
+    // DEPRECATED
+    'stats/full': 'seneca.stats({summary:false})',
+
+    // TODO: there should be a seneca.tree()
+    tree: 'seneca.root.private$.actrouter',
+  },
+  inspect: {},
+  cmds: {
+    // custom cmds
+  },
+}
+
+
+module.exports = repl
