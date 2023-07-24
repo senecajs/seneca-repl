@@ -1,6 +1,10 @@
 ![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
 > A [Seneca.js][] plugin
 
+
+## NOTE: [Version 2 Plan](doc/version-2.md)
+
+
 # seneca-repl
 [![npm version][npm-badge]][npm-url]
 [![Build Status][travis-badge]][travis-url]
