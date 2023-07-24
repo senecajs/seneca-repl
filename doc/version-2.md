@@ -4,6 +4,8 @@ I'm updating the
 [@seneca/repl](https://github.com/senecajs/seneca-repl) plugin! Here
 is the basic plan.
 
+NOTE: There's a [`@seneca/repl dev` Github Project](https://github.com/orgs/senecajs/projects/2) to track this work.
+
 The [@seneca/repl](https://github.com/senecajs/seneca-repl) plugin
 provides a
 [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop)
