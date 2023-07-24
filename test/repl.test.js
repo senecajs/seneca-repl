@@ -1,23 +1,24 @@
 /* Copyright (c) 2012-2019 Richard Rodger, Wyatt Preul, and other contributors, MIT License */
 'use strict'
 
-var tmx = parseInt(process.env.TIMEOUT_MULTIPLIER, 10) || 1
+const tmx = parseInt(process.env.TIMEOUT_MULTIPLIER, 10) || 1
 
 const Util = require('util')
 const Net = require('net')
 
-const Lab = require('@hapi/lab')
-const Code = require('@hapi/code')
+// const Lab = require('@hapi/lab')
+// const Code = require('@hapi/code')
+// const PluginValidator = require('seneca-plugin-validator')
 
-const PluginValidator = require('seneca-plugin-validator')
 const Plugin = require('..')
 
 const Seneca = require('seneca')
 
-const lab = (exports.lab = Lab.script())
-const describe = lab.describe
-const it = lab.it
-const expect = Code.expect
+// const lab = (exports.lab = Lab.script())
+// const describe = lab.describe
+// const it = lab.it
+// const expect = Code.expect
+
 
 describe('repl', function () {
   it('start', async function () {
@@ -31,22 +32,26 @@ describe('repl', function () {
     await si.close()
   })
 
+
+
   it('cmd_get', async function () {
     var si = await Seneca({ tag: 'foo' }).test()
     Plugin.intern.cmd_get('get', 'tag', { seneca: si }, {}, (err, out) => {
-      expect(err).not.exists()
-      expect(out).equal('foo')
+      expect(err).toBeNull()
+      expect(out).toEqual('foo')
     })
   })
 
+  
   it('cmd_depth', async function () {
     var si = await Seneca().test()
     Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
-      expect(err).not.exists()
-      expect(out).equal('Inspection depth set to 4')
+      expect(err).toBeNull()
+      expect(out).toEqual('Inspection depth set to 4')
     })
   })
 
+  
   it('happy', async function () {
     var si = await Seneca()
       .use('promisify')
@@ -64,23 +69,26 @@ describe('repl', function () {
       sock.on('data', function (data) {
         result += data.toString('ascii')
 
-        expect(result).to.contain('seneca')
+        expect(result).toContain('seneca')
         if (first) {
           setTimeout(function () {
             first = false
-            expect(result).to.contain('->')
+
+            expect(result).toContain('->')
+            
             sock.write('this\n')
           }, 50 * tmx)
         } else {
-          expect(result).to.contain('->')
+          expect(result).toContain('->')
           sock.write('seneca.quit\n')
           sock.destroy()
           sock.removeAllListeners('data')
-          good()
+          si.close(good)
         }
       })
     })
   })
+  
 
 
   it('cmd-msg', async function () {
@@ -103,21 +111,22 @@ describe('repl', function () {
       cmd: 'sys:repl,echo:true,x:1\n'
     })
 
-    console.log('RES0',res)
+    // console.log('RES0',res)
 
     res = await si.post('sys:repl,send:cmd',{
       id: 'foo',
       cmd: 'sys:repl,echo:true,x:2\n'
     })
 
-    console.log('RES1',res)
+    // console.log('RES1',res)
 
+    await si.close()
   })
 
-  
-  it('interaction', { timeout: 9999 * tmx }, async function () {
+    
+  it('interaction', async function () {
     return new Promise((good, bad) => {
-      Seneca({ log: 'silent' })
+      let si = Seneca({ log: 'silent' })
         .add('a:1', function (msg, reply) {
           reply({ x: msg.x })
         })
@@ -210,12 +219,14 @@ describe('repl', function () {
             },
           ]
 
+          console.log('QUIT')
           sock.write('seneca.quit()\n')
 
           function nextStep() {
             var step = conversation.shift()
             if (!step) {
-              return good()
+              // return good()
+              return si.close(good)
             }
 
             result = ''
@@ -226,17 +237,17 @@ describe('repl', function () {
               // console.log('RESULT: '+result)
               // console.log('EXPECT: '+step.expect)
               if (step.expect) {
-                expect(result).to.contain(step.expect)
+                expect(result).toContain(step.expect)
               }
               nextStep()
             }, 222 * tmx)
           }
 
           setTimeout(function () {
-            expect(result).to.contain('seneca')
+            expect(result).toContain('seneca')
             nextStep()
           }, 222 * tmx)
         })
     })
-  })
+  }, 9999 * tmx)
 })

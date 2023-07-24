@@ -17,8 +17,11 @@
     "seneca-repl": "./bin/seneca-repl-exec.js"
   },
   "scripts": {
-    "test": "lab -P test -v -t 75 -r console -o stdout -r html -o test/coverage.html",
-    "test-some": "lab -P test -v -g",
+    "test": "jest --coverage",
+    "test-some": "jest -t",
+    "test-watch": "jest --coverage --watchAll",
+    "lab-test": "lab -P test -v -t 75 -r console -o stdout -r html -o test/coverage.html",
+    "lab-test-some": "lab -P test -v -g",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -t 70 -r html > coverage.html",
     "prettier": "prettier --write --no-semi --single-quote *.js test/*.js",
@@ -51,6 +54,7 @@
     "async": "^3.2.4",
     "coveralls": "^3.1.1",
     "gex": "^4.0.1",
+    "jest": "^29.6.1",
     "prettier": "^3.0.0",
     "seneca": "^3.32.0",
     "seneca-doc": "^2.1.3",
