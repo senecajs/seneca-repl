@@ -7,6 +7,8 @@
 
 // https://stackoverflow.com/questions/67518218/custom-node-js-repl-input-output-stream
 
+const { PassThrough } = require('node:stream')
+
 const Net = require('net')
 const Repl = require('repl')
 const Util = require('util')
@@ -39,9 +41,10 @@ const default_cmds = {
 
 function repl(options) {
   let seneca = this
+  
   let export_address = {}
-
-  let cmd_map = Object.assign({}, default_cmds, options.cmds)
+  let replMap = {}
+  let cmdMap = Object.assign({}, default_cmds, options.cmds)
 
   seneca.add('sys:repl,use:repl', use_repl)
   seneca.add('sys:repl,send:cmd', send_cmd)
@@ -51,15 +54,45 @@ function repl(options) {
 
   
   function use_repl(msg, reply) {
-    let repl_id = msg.id
-    let input = msg.input
-    let output = msg.output
+    let replID = msg.id || (options.host+':'+options.port)
 
-    // NEXT: store repl instance using repl_id, incl streams
+    let replDesc = replMap[replID]
+
+    console.log('USE-REPL', replID, replDesc)
+    
+    if(replDesc) {
+      if('open' === replDesc.status) {
+        return reply({
+          id: replDesc.id,
+          status: replDesc.status,
+          desc: replDesc
+        })
+      }
+      else if('init' === replDesc.status) {
+        // TODO: queue
+        seneca.fail('concurrent-init', {id:replID})
+      }
+    }
+    
+    let input = msg.input || new PassThrough()
+    let output = msg.output || new PassThrough()
+
+    replMap[replID] = replDesc = {
+      id: replID,
+      input,
+      output,
+      log: [],
+    }
+
+    updateStatus(replDesc, 'init')
+    
+    // NEXT: store repl instance using replID, incl streams
     // use the sreams to send cmds
     
     let sd = seneca.root.delegate({ repl$: true, fatal$: false })
-
+    replDesc.instance = sd
+    
+    
     let alias = options.alias
     
     let r = Repl.start({
@@ -71,8 +104,11 @@ function repl(options) {
       eval: evaluate,
     })
 
+    replDesc.repl = r
+    
+    
     r.on('exit', function () {
-      // socket.end()
+      updateStatus(replDesc, 'closed')
       input.end()
       output.end()
     })
@@ -81,6 +117,7 @@ function repl(options) {
       sd.log.error('repl', err)
     })
 
+    
     Object.assign(r.context, {
       // NOTE: don't trigger funnies with a .inspect property
       inspekt: intern.make_inspect(r.context, {
@@ -100,7 +137,7 @@ function repl(options) {
       act_trace: false,
       act_index_map: {},
       act_index: 1000000,
-      cmd_map: cmd_map,
+      cmdMap: cmdMap,
     })
 
     sd.on_act_in = intern.make_on_act_in(r.context)
@@ -109,15 +146,18 @@ function repl(options) {
 
     sd.on('log', intern.make_log_handler(r.context))
 
+    
     function evaluate(cmdtext, context, filename, respond) {
       const inspect = context.inspekt
       let cmd_history = context.history
 
       cmdtext = cmdtext.trim()
+      console.log('CMDTEXT', cmdtext)
 
       if ('last' === cmdtext && 0 < cmd_history.length) {
         cmdtext = cmd_history[cmd_history.length - 1]
-      } else {
+      }
+      else {
         cmd_history.push(cmdtext)
       }
 
@@ -136,7 +176,7 @@ function repl(options) {
         cmd = alias[cmd]
       }
 
-      let cmd_func = cmd_map[cmd]
+      let cmd_func = cmdMap[cmd]
       // console.log('CMD', cmd, !!cmd_func)
 
       if (cmd_func) {
@@ -162,13 +202,18 @@ function repl(options) {
           let injected_msg = Inks(msg, context)
           let args = seneca.util.Jsonic(injected_msg)
 
-          // console.log('JSONIC: ',injected_msg,args)
+          console.log('JSONIC: ',injected_msg,args)
           if( null == args || Array.isArray(args) || 'object' !== typeof args) {
             return false
           }
+
+          console.log('MSG IN', args)
           
-          context.s.ready(() => {
+          // context.s.ready(() => {
+            console.log('ACT', args)
             context.s.act(args, function (err, out) {
+              console.log('ACTRES', err, out)
+
               context.err = err
               context.out = out
 
@@ -186,12 +231,14 @@ function repl(options) {
                   : context.inspekt(sd.util.clean(out))
                 // socket.write(out + '\n')
                 output.write(out + '\n')
+                output.write(new Uint8Array([0]))
+                
               } else if (err) {
                 // socket.write(context.inspekt(err) + '\n')
                 output.write(context.inspekt(err) + '\n')
               }
             })
-          })
+          // })
           return true
         } catch (e) {
           // Not jsonic format, so try to execute as a script
@@ -213,8 +260,9 @@ function repl(options) {
           })
 
           result = result === seneca ? null : result
-          respond(null, result)
-        } catch (e) {
+          return respond(null, result)
+        }
+        catch (e) {
           if ('SyntaxError' === e.name && e.message.startsWith('await')) {
             let wrapper = '(async () => { return (' + cmdtext + ') })()'
 
@@ -236,38 +284,60 @@ function repl(options) {
                 .catch((e) => {
                   return respond(e.message)
                 })
-            } catch (e) {
+            }
+            catch (e) {
               return respond(e.message)
             }
-          } else {
+          }
+          else {
             return respond(e.message)
           }
         }
-
-        //   // let out = script.runInContext(context, {
-
-        //   // out
-        //   //  .then(result=>{
-        //   //  })
-        //   //  .catch(e => {
-        //   //    return respond(e.message)
-        //   //  })
-        // } catch (e) {
-        //   console.log(e)
-        //   return respond(e.message)
-        // }
       }
     }
     
-    reply()
+    return reply({
+      id: replDesc.id,
+      status: replDesc.status,
+      desc: replDesc
+    })
   }
 
 
   function send_cmd(msg, reply) {
-
+    let seneca = this
+    
     // lookup repl by id, using steams to submit cmd and send back response
     
-    reply()
+    let replID = msg.id || (options.host+':'+options.port)
+    let replDesc = replMap[replID]
+
+    // console.log(replID, replMap)
+    
+    if(null == replDesc) {
+      seneca.fail('unknown-repl', {id:replID})
+    }
+    else if('open' !== replDesc.status) {
+      seneca.fail('invalid-status',{id:replID,status:replDesc.status})
+    }
+
+    let cmd = msg.cmd
+
+    let out = []
+
+    // TODO: dedup this
+    replDesc.output.on('data', (chunk)=>{
+      if(0 === chunk[0]) {
+        reply({out:out.join('')})        
+      }
+      
+      out.push(chunk.toString())
+      // console.log('OUT', chunk, out)
+    })
+
+    console.log('WRITE', cmd)
+    replDesc.input.write(cmd)
+    
   }
   
   
@@ -276,7 +346,7 @@ function repl(options) {
     let action = msg.action
 
     if ('string' === typeof name && 'function' === typeof action) {
-      cmd_map[name] = action
+      cmdMap[name] = action
     } else {
       this.fail('invalid-cmd')
     }
@@ -286,8 +356,15 @@ function repl(options) {
   add_cmd.desc = 'Add a REPL command dynamically'
 
   seneca.init(function (reply) {
+    // TODO: replace with sys:repl,use:repl call
     try {
-      let server = intern.start_repl(seneca, options, cmd_map)
+      intern.start_repl(seneca, options, cmdMap, export_address, ()=>{
+        console.log('START-REPL done')
+        reply()
+      })
+
+      /*
+      let server = intern.start_repl(seneca, options, cmdMap)
 
       server.on('listening', function () {
         let address = server.address()
@@ -307,8 +384,11 @@ function repl(options) {
       server.on('error', function (err) {
         seneca.log.error(err)
       })
+      */
+      
     } catch (e) {
       console.log(e)
+      // TODO: throw
     }
   })
 
@@ -320,26 +400,68 @@ function repl(options) {
   }
 }
 
+
+function updateStatus(replDesc, newStatus) {
+  replDesc.status = newStatus
+  replDesc.log.push({
+    kind: 'status',
+    status: newStatus,
+    when: Date.now()
+  })
+}
+
+
 function make_intern() {
   return {
-    start_repl: function (seneca, options, cmd_map) {
-      // let alias = options.alias
-
+    // TODO: separate Net server construction from repl setup
+    start_repl: function (seneca, options, cmdMap, export_address, done) {
+      
       let server = Net.createServer(function (socket) {
-
+        console.log('CREATE')
+        
         // TODO: pass this up to init so it can fail properly
         socket.on('error', function (err) {
           seneca.log.error('repl-socket', err)
         })
 
         seneca.act('sys:repl,use:repl',{
-          id: options.host+':'+options.port,
+          // id: options.host+':'+options.port,
           input: socket,
           output: socket,
+        }, function(err, res) {
+          console.log(err)
+          if(err) {
+            return done(err)
+          }
+          console.log('RES', res)
+          res.desc.status = 'open'
         })
         
-      }).listen(options.port, options.host)
+      })
 
+      server.listen(options.port, options.host)
+
+      server.on('listening', function () {
+        let address = server.address()
+
+        export_address.port = address.port
+        export_address.host = address.address
+        export_address.family = address.family
+
+        seneca.log.info({
+          kind: 'notice',
+          notice: 'REPL listening on ' + address.address + ':' + address.port,
+        })
+
+        console.log('LISTENING')
+        done()
+      })
+
+      server.on('error', function (err) {
+        seneca.log.error(err)
+      })
+
+      
       return server
     },
 
@@ -571,7 +693,7 @@ function make_intern() {
     },
 
     cmd_help: function (cmd, argtext, context, options, respond) {
-      return respond(null, context.cmd_map)
+      return respond(null, context.cmdMap)
     },
   }
 }

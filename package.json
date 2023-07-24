@@ -18,6 +18,7 @@
   },
   "scripts": {
     "test": "lab -P test -v -t 75 -r console -o stdout -r html -o test/coverage.html",
+    "test-some": "lab -P test -v -g",
     "coveralls": "lab -s -P test -r lcov | coveralls",
     "coverage": "lab -v -P test -t 70 -r html > coverage.html",
     "prettier": "prettier --write --no-semi --single-quote *.js test/*.js",

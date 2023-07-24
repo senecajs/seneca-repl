@@ -82,6 +82,39 @@ describe('repl', function () {
     })
   })
 
+
+  it('cmd-msg', async function () {
+    let si = await Seneca()
+      .use('promisify')
+      .test()
+      .use(Plugin, { port: 0 })
+      .ready()
+
+    let replres = await si.post('sys:repl,use:repl',
+                             {id:'foo'}
+                            )
+
+    // TODO: fix!
+    replres.desc.status = 'open'
+    // console.log('DESC',replres.desc)
+    
+    let res = await si.post('sys:repl,send:cmd',{
+      id: 'foo',
+      cmd: 'sys:repl,echo:true,x:1\n'
+    })
+
+    console.log('RES0',res)
+
+    res = await si.post('sys:repl,send:cmd',{
+      id: 'foo',
+      cmd: 'sys:repl,echo:true,x:2\n'
+    })
+
+    console.log('RES1',res)
+
+  })
+
+  
   it('interaction', { timeout: 9999 * tmx }, async function () {
     return new Promise((good, bad) => {
       Seneca({ log: 'silent' })
