@@ -9,26 +9,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_stream_1 = require("node:stream");
 const node_net_1 = __importDefault(require("node:net"));
 const node_repl_1 = __importDefault(require("node:repl"));
-const node_util_1 = __importDefault(require("node:util"));
 const node_vm_1 = __importDefault(require("node:vm"));
 const hoek_1 = __importDefault(require("@hapi/hoek"));
 const Inks = require('inks');
+const cmds_1 = require("./cmds");
+const utils_1 = require("./utils");
 const intern = (repl.intern = make_intern());
 const default_cmds = {
-    get: intern.cmd_get,
-    depth: intern.cmd_depth,
-    plain: intern.cmd_plain,
-    quit: intern.cmd_quit,
-    list: intern.cmd_list,
-    find: intern.cmd_find,
-    prior: intern.cmd_prior,
-    history: intern.cmd_history,
-    log: intern.cmd_log,
-    set: intern.cmd_set,
-    alias: intern.cmd_alias,
-    trace: intern.cmd_trace,
-    help: intern.cmd_help,
+// get: intern.cmd_get,
+// depth: intern.cmd_depth,
+// plain: intern.cmd_plain,
+// quit: intern.cmd_quit,
+// list: intern.cmd_list,
+// find: intern.cmd_find,
+// prior: intern.cmd_prior,
+// history: intern.cmd_history,
+// log: intern.cmd_log,
+// set: intern.cmd_set,
+// alias: intern.cmd_alias,
+// trace: intern.cmd_trace,
+// help: intern.cmd_help,
 };
+for (let cmd of Object.values(cmds_1.Cmds)) {
+    default_cmds[cmd.name.toLowerCase().replace(/cmd$/, '')] = cmd;
+}
+// console.log(default_cmds)
 function repl(options) {
     let seneca = this;
     let export_address = {};
@@ -136,7 +141,7 @@ function repl(options) {
         });
         Object.assign(r.context, {
             // NOTE: don't trigger funnies with a .inspect property
-            inspekt: intern.make_inspect(r.context, {
+            inspekt: (0, utils_1.makeInspect)(r.context, {
                 ...options.inspect,
                 depth: options.depth,
             }),
@@ -175,7 +180,7 @@ function repl(options) {
             }
             let m = cmdtext.match(/^(\S+)/);
             let cmd = m && m[1];
-            let argtext = 'string' === typeof cmd ? cmdtext.substring(cmd.length) : '';
+            let argstr = 'string' === typeof cmd ? cmdtext.substring(cmd.length) : '';
             // NOTE: alias can also apply just to command
             if (alias[cmd]) {
                 cmd = alias[cmd];
@@ -183,7 +188,12 @@ function repl(options) {
             let cmd_func = cmdMap[cmd];
             // console.log('CMD', cmd, !!cmd_func)
             if (cmd_func) {
-                return cmd_func(cmd, argtext, context, options, respond);
+                if (1 === cmd_func.length) {
+                    return cmd_func({ name: cmd, argstr, context, options, respond });
+                }
+                else {
+                    return cmd_func(cmd, argstr, context, options, respond);
+                }
             }
             if (!execute_action(cmdtext)) {
                 context.s.ready(() => {
@@ -340,32 +350,6 @@ function repl(options) {
             server,
             status: 'server'
         };
-        /*
-        let server = intern.start_repl(seneca, options, cmdMap)
-    
-        server.on('listening', function () {
-          let address = server.address()
-    
-          export_address.port = address.port
-          export_address.host = address.address
-          export_address.family = address.family
-    
-          seneca.log.info({
-            kind: 'notice',
-            notice: 'REPL listening on ' + address.address + ':' + address.port,
-          })
-    
-          reply()
-        })
-    
-        server.on('error', function (err) {
-          seneca.log.error(err)
-        })
-        */
-        // } catch (e) {
-        // console.log(e)
-        // TODO: throw
-        // }
     });
     return {
         name: 'repl',
@@ -423,31 +407,6 @@ function make_intern() {
             });
             return server;
         },
-        parse_option: function (optpath, val) {
-            optpath += '.';
-            let part = /([^.]+)\.+/g;
-            let m;
-            let out = {};
-            let cur = out;
-            let po = out;
-            let pn;
-            while (null != (m = part.exec(optpath))) {
-                cur[m[1]] = {};
-                po = cur;
-                pn = m[1];
-                cur = cur[m[1]];
-            }
-            po[pn] = val;
-            return out;
-        },
-        make_inspect: function (context, inspect_options) {
-            return (x) => {
-                if (context.plain) {
-                    x = JSON.parse(JSON.stringify(x));
-                }
-                return node_util_1.default.inspect(x, inspect_options);
-            };
-        },
         fmt_index: function (i) {
             return ('' + i).substring(1);
         },
@@ -490,7 +449,7 @@ function make_intern() {
             };
         },
         make_on_act_out: function (context) {
-            return function on_act_out(actdef, out, meta) {
+            return function on_act_out(_actdef, out, meta) {
                 if (!context.act_trace)
                     return;
                 let actid = (meta || out.meta$ || {}).id;
@@ -513,104 +472,131 @@ function make_intern() {
                 }
             };
         },
-        cmd_get: function (_cmd, argtext, context, _options, respond) {
-            let option_path = argtext.trim();
-            let sopts = context.seneca.options();
-            let out = hoek_1.default.reach(sopts, option_path);
-            return respond(null, out);
-        },
-        cmd_depth: function (_cmd, argtext, context, options, respond) {
-            let depth = parseInt(argtext, 10);
-            depth = isNaN(depth) ? null : depth;
-            context.inspekt = intern.make_inspect(context, {
-                ...options.inspect,
-                depth: depth,
-            });
-            return respond(null, 'Inspection depth set to ' + depth);
-        },
-        cmd_plain: function (_cmd, _argtext, context, _options, respond) {
-            context.plain = !context.plain;
-            return respond();
-        },
-        cmd_quit: function (_cmd, _argtext, context, _options, _respond) {
-            context.socket.end();
-        },
-        cmd_list: function (_cmd, argtext, context, _options, respond) {
-            let narrow = context.seneca.util.Jsonic(argtext);
-            respond(null, context.seneca.list(narrow));
-        },
-        cmd_find: function (_cmd, argtext, context, _options, respond) {
-            let narrow = context.seneca.util.Jsonic(argtext);
-            respond(null, context.seneca.find(narrow));
-        },
-        cmd_prior: function (_cmd, argtext, context, _options, respond) {
-            let pdesc = (actdef) => {
-                let d = {
-                    id: actdef.id,
-                    plugin: actdef.plugin_fullname,
-                    pattern: actdef.pattern,
-                    callpoint: undefined
-                };
-                if (actdef.callpoint) {
-                    d.callpoint = actdef.callpoint;
-                }
-                return d;
-            };
-            let narrow = context.seneca.util.Jsonic(argtext);
-            let actdef = context.seneca.find(narrow);
-            let priors = [pdesc(actdef)];
-            let pdef = actdef;
-            while (null != (pdef = pdef.priordef)) {
-                priors.push(pdesc(pdef));
-            }
-            respond(null, priors);
-        },
-        cmd_history: function (_cmd, _argtext, context, _options, respond) {
-            return respond(null, context.history.join('\n'));
-        },
-        cmd_log: function (_cmd, argtext, context, _options, respond) {
-            context.log_capture = !context.log_capture;
-            let m = null;
-            if (!context.log_capture) {
-                context.log_match = null;
-            }
-            if ((m = argtext.match(/^\s*match\s+(.*)/))) {
-                context.log_capture = true; // using match always turns logging on
-                context.log_match = m[1];
-            }
-            return respond();
-        },
-        cmd_set: function (_cmd, argtext, context, options, respond) {
-            let m = argtext.match(/^\s*(\S+)\s+(\S+)/);
-            if (m) {
-                let setopt = intern.parse_option(m[1], context.seneca.util.Jsonic('$:' + m[2]).$);
-                context.seneca.options(setopt);
-                if (setopt.repl) {
-                    options = context.seneca.util.deepextend(options, setopt.repl);
-                }
-                return respond();
-            }
-            else {
-                return respond('ERROR: expected set <path> <value>');
-            }
-        },
-        cmd_alias: function (_cmd, argtext, context, _options, respond) {
-            let m = argtext.match(/^\s*(\S+)\s+(.+)[\r\n]?/);
-            if (m) {
-                context.alias[m[1]] = m[2];
-                return respond();
-            }
-            else {
-                return respond('ERROR: expected alias <name> <command>');
-            }
-        },
-        cmd_trace: function (_cmd, _argtext, context, _options, respond) {
-            context.act_trace = !context.act_trace;
-            return respond();
-        },
-        cmd_help: function (_cmd, _argtext, context, _options, respond) {
-            return respond(null, context.cmdMap);
-        },
+        // cmd_get: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   let option_path = argstr.trim()
+        //   let sopts = context.seneca.options()
+        //   let out = Hoek.reach(sopts, option_path)
+        //   return respond(null, out)
+        // },
+        // cmd_depth: function (
+        //   _cmd: any, argstr: any, context: any, options: any, respond: any
+        // ) {
+        //   let depth: any = parseInt(argstr, 10)
+        //   depth = isNaN(depth) ? null : depth
+        //   context.inspekt = intern.make_inspect(context, {
+        //     ...options.inspect,
+        //     depth: depth,
+        //   })
+        //   return respond(null, 'Inspection depth set to ' + depth)
+        // },
+        // cmd_plain: function (
+        //   _cmd: any, _argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   context.plain = !context.plain
+        //   return respond()
+        // },
+        // cmd_quit: function (
+        //   _cmd: any, _argstr: any, context: any, _options: any, _respond: any
+        // ) {
+        //   context.socket.end()
+        // },
+        // cmd_list: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   let narrow = context.seneca.util.Jsonic(argstr)
+        //   respond(null, context.seneca.list(narrow))
+        // },
+        // cmd_find: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   let narrow = context.seneca.util.Jsonic(argstr)
+        //   respond(null, context.seneca.find(narrow))
+        // },
+        // cmd_prior: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   let pdesc = (actdef: any) => {
+        //     let d = {
+        //       id: actdef.id,
+        //       plugin: actdef.plugin_fullname,
+        //       pattern: actdef.pattern,
+        //       callpoint: undefined
+        //     }
+        //     if (actdef.callpoint) {
+        //       d.callpoint = actdef.callpoint
+        //     }
+        //     return d
+        //   }
+        //   let narrow = context.seneca.util.Jsonic(argstr)
+        //   let actdef = context.seneca.find(narrow)
+        //   let priors = [pdesc(actdef)]
+        //   let pdef = actdef
+        //   while (null != (pdef = pdef.priordef)) {
+        //     priors.push(pdesc(pdef))
+        //   }
+        //   respond(null, priors)
+        // },
+        // cmd_history: function (
+        //   _cmd: any, _argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   return respond(null, context.history.join('\n'))
+        // },
+        // cmd_log: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   context.log_capture = !context.log_capture
+        //   let m = null
+        //   if (!context.log_capture) {
+        //     context.log_match = null
+        //   }
+        //   if ((m = argstr.match(/^\s*match\s+(.*)/))) {
+        //     context.log_capture = true // using match always turns logging on
+        //     context.log_match = m[1]
+        //   }
+        //   return respond()
+        // },
+        // cmd_set: function (
+        //   _cmd: any, argstr: any, context: any, options: any, respond: any
+        // ) {
+        //   let m = argstr.match(/^\s*(\S+)\s+(\S+)/)
+        //   if (m) {
+        //     let setopt: any = intern.parse_option(
+        //       m[1],
+        //       context.seneca.util.Jsonic('$:' + m[2]).$
+        //     )
+        //     context.seneca.options(setopt)
+        //     if (setopt.repl) {
+        //       options = context.seneca.util.deepextend(options, setopt.repl)
+        //     }
+        //     return respond()
+        //   } else {
+        //     return respond('ERROR: expected set <path> <value>')
+        //   }
+        // },
+        // cmd_alias: function (
+        //   _cmd: any, argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   let m = argstr.match(/^\s*(\S+)\s+(.+)[\r\n]?/)
+        //   if (m) {
+        //     context.alias[m[1]] = m[2]
+        //     return respond()
+        //   } else {
+        //     return respond('ERROR: expected alias <name> <command>')
+        //   }
+        // },
+        // cmd_trace: function (
+        //   _cmd: any, _argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   context.act_trace = !context.act_trace
+        //   return respond()
+        // },
+        // cmd_help: function (
+        //   _cmd: any, _argstr: any, context: any, _options: any, respond: any
+        // ) {
+        //   return respond(null, context.cmdMap)
+        // },
     };
 }
 repl.defaults = {
@@ -630,5 +616,6 @@ repl.defaults = {
     // custom cmds
     },
 };
+repl.Cmds = cmds_1.Cmds;
 module.exports = repl;
 //# sourceMappingURL=repl.js.map

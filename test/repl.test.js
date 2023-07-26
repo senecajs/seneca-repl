@@ -19,6 +19,8 @@ const Seneca = require('seneca')
 // const it = lab.it
 // const expect = Code.expect
 
+const { Cmds } = Plugin
+
 
 describe('repl', function () {
   it('start', async function () {
@@ -35,19 +37,32 @@ describe('repl', function () {
 
 
   it('cmd_get', async function () {
-    var si = await Seneca({ tag: 'foo' }).test()
-    Plugin.intern.cmd_get('get', 'tag', { seneca: si }, {}, (err, out) => {
-      expect(err).toBeNull()
-      expect(out).toEqual('foo')
+    const si = await Seneca({ tag: 'foo' }).test()
+    Cmds.GetCmd({
+      name: 'get',
+      argstr: 'tag',
+      context: { seneca: si },
+      options: {},
+      respond: (err, out) => {
+        expect(err).toBeNull()
+        expect(out).toEqual('foo')
+      }
     })
   })
 
   
   it('cmd_depth', async function () {
-    var si = await Seneca().test()
-    Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
-      expect(err).toBeNull()
-      expect(out).toEqual('Inspection depth set to 4')
+    const si = await Seneca().test()
+    // Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
+    Cmds.DepthCmd({
+      name: 'depth',
+      argstr: '4',
+      context: { seneca: si },
+      options: {},
+      respond: (err, out) => {
+        expect(err).toBeNull()
+        expect(out).toEqual('Inspection depth set to 4')
+      }
     })
   })
 
@@ -219,7 +234,7 @@ describe('repl', function () {
             },
           ]
 
-          console.log('QUIT')
+          // console.log('QUIT')
           sock.write('seneca.quit()\n')
 
           function nextStep() {
