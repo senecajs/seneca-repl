@@ -122,10 +122,11 @@ describe('repl', function () {
       .use(Plugin, { port: 0 })
       .ready()
 
-    var port = si.export('repl/address').port
+    var addr = si.export('repl/address')
+    console.log('ADDR', addr)
 
     var result = ''
-    var sock = Net.connect(port)
+    var sock = Net.connect(addr.port, addr.host)
     var first = true
 
     return new Promise((good, bad) => {
