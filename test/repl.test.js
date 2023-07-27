@@ -123,7 +123,6 @@ describe('repl', function () {
       .ready()
 
     var addr = si.export('repl/address')
-    console.log('ADDR', addr)
 
     var result = ''
     var sock = Net.connect(addr.port, addr.host)
@@ -214,9 +213,7 @@ describe('repl', function () {
           let si = this
           
           var addr = this.export('repl/address')
-          var port = addr.port
-
-          var sock = Net.connect(port)
+          var sock = Net.connect(addr.port, addr.host)
 
           var result
           sock.on('data', function (buffer) {
