@@ -45,6 +45,44 @@ describe('repl', function () {
     await si.close()
   })
 
+  
+  it('fail-port', async function () {
+    const si =
+          Seneca({
+            timeout: 555,
+            error: {
+              identify: function identifyError(e) {
+                return (e instanceof Error) ||
+                  Object.prototype.toString.call(e)==='[object Error]'
+              },
+            },
+            legacy:false,debug:{undead:true},
+          })
+          // .test('print')
+          .quiet()
+
+    try {
+      await new Promise((resolve, reject)=>{
+
+        si
+          .error((err)=>{
+            expect(err.code).toEqual('EADDRINUSE')
+            resolve()
+          })
+          .use('promisify')
+          .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+          .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+        // .use('..$a', { host: '0.0.0.0', port: 60606, depth: 1 })
+        // .use('..$b', { host: '0.0.0.0', port: 60606, depth: 1 })
+          .ready(reject)
+      })
+    }
+    finally {
+      await si.close()
+    }
+  })
+
+  
 
   it('cmd_get', async function () {
     const si = await Seneca({ tag: 'foo' }).test()
