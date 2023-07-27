@@ -24,16 +24,26 @@ const { Cmds } = Plugin
 
 describe('repl', function () {
   it('start', async function () {
-    var si = Seneca().use('promisify').test()
+    const si = Seneca().use('promisify').test()
 
     await si
-      .use(Plugin, { host: '0.0.0.0', port: 60606, depth: 1 })
-      .use(Plugin, { host: '0.0.0.0', port: 50505, depth: 1 })
+      .use(Plugin)
       .ready()
 
     await si.close()
   })
 
+  
+  it('multiple', async function () {
+    const si = Seneca().use('promisify').test()
+    
+    await si
+      .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+      .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 50505, depth: 1 })
+      .ready()
+
+    await si.close()
+  })
 
 
   it('cmd_get', async function () {
@@ -118,7 +128,7 @@ describe('repl', function () {
                             )
 
     // TODO: fix!
-    replres.desc.status = 'open'
+    // replres.desc.status = 'open'
     // console.log('DESC',replres.desc)
     
     let res = await si.post('sys:repl,send:cmd',{
@@ -141,7 +151,10 @@ describe('repl', function () {
     
   it('interaction', async function () {
     return new Promise((good, bad) => {
-      let si = Seneca({ log: 'silent' })
+      Seneca({legacy:false})
+      // .test()
+        .quiet()
+        .use('promisify')
         .add('a:1', function (msg, reply) {
           reply({ x: msg.x })
         })
@@ -149,15 +162,20 @@ describe('repl', function () {
           reply(new Error('eek'))
         })
         .use('..', { port: 0 })
+
         .act('sys:repl,add:cmd', {
           name: 'foo',
-          action: function (cmd, argtext, context, options, respond) {
-            return respond(null, 'FOO:' + argtext)
+          // action: function (cmd, argtext, context, options, respond) {
+          action: function (spec) {
+            return spec.respond(null, 'FOO:' + spec.argstr)
           },
         })
-
+      
         .ready(function () {
-          var port = this.export('repl/address').port
+          let si = this
+          
+          var addr = this.export('repl/address')
+          var port = addr.port
 
           var sock = Net.connect(port)
 
@@ -172,6 +190,7 @@ describe('repl', function () {
               send: 'console.log(this)\n',
               expect: '{',
             },
+
             {
               send: 'set foo.bar 1\nseneca.options().foo\n',
               expect: 'bar',
