@@ -19,35 +19,98 @@ const Seneca = require('seneca')
 // const it = lab.it
 // const expect = Code.expect
 
+const { Cmds } = Plugin
+
 
 describe('repl', function () {
   it('start', async function () {
-    var si = Seneca().use('promisify').test()
+    const si = Seneca().use('promisify').test()
 
     await si
-      .use(Plugin, { host: '0.0.0.0', port: 60606, depth: 1 })
-      .use(Plugin, { host: '0.0.0.0', port: 50505, depth: 1 })
+      .use(Plugin)
       .ready()
 
     await si.close()
   })
 
+  
+  it('multiple', async function () {
+    const si = Seneca().use('promisify').test()
+    
+    await si
+      .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+      .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 50505, depth: 1 })
+      .ready()
 
+    await si.close()
+  })
+
+  
+  it('fail-port', async function () {
+    const si =
+          Seneca({
+            timeout: 555,
+            error: {
+              identify: function identifyError(e) {
+                return (e instanceof Error) ||
+                  Object.prototype.toString.call(e)==='[object Error]'
+              },
+            },
+            legacy:false,debug:{undead:true},
+          })
+          // .test('print')
+          .quiet()
+
+    try {
+      await new Promise((resolve, reject)=>{
+
+        si
+          .error((err)=>{
+            expect(err.code).toEqual('EADDRINUSE')
+            resolve()
+          })
+          .use('promisify')
+          .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+          .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
+        // .use('..$a', { host: '0.0.0.0', port: 60606, depth: 1 })
+        // .use('..$b', { host: '0.0.0.0', port: 60606, depth: 1 })
+          .ready(reject)
+      })
+    }
+    finally {
+      await si.close()
+    }
+  })
+
+  
 
   it('cmd_get', async function () {
-    var si = await Seneca({ tag: 'foo' }).test()
-    Plugin.intern.cmd_get('get', 'tag', { seneca: si }, {}, (err, out) => {
-      expect(err).toBeNull()
-      expect(out).toEqual('foo')
+    const si = await Seneca({ tag: 'foo' }).test()
+    Cmds.GetCmd({
+      name: 'get',
+      argstr: 'tag',
+      context: { seneca: si },
+      options: {},
+      respond: (err, out) => {
+        expect(err).toBeNull()
+        expect(out).toEqual('foo')
+      }
     })
   })
 
   
   it('cmd_depth', async function () {
-    var si = await Seneca().test()
-    Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
-      expect(err).toBeNull()
-      expect(out).toEqual('Inspection depth set to 4')
+    const si = await Seneca().test()
+    // Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
+    Cmds.DepthCmd({
+      name: 'depth',
+      argstr: '4',
+      context: { seneca: si },
+      options: {},
+      respond: (err, out) => {
+        expect(err).toBeNull()
+        expect(out).toEqual('Inspection depth set to 4')
+      }
     })
   })
 
@@ -55,14 +118,14 @@ describe('repl', function () {
   it('happy', async function () {
     var si = await Seneca()
       .use('promisify')
-      .test()
+        .test()
       .use(Plugin, { port: 0 })
       .ready()
 
-    var port = si.export('repl/address').port
+    var addr = si.export('repl/address')
 
     var result = ''
-    var sock = Net.connect(port)
+    var sock = Net.connect(addr.port, addr.host)
     var first = true
 
     return new Promise((good, bad) => {
@@ -103,7 +166,7 @@ describe('repl', function () {
                             )
 
     // TODO: fix!
-    replres.desc.status = 'open'
+    // replres.desc.status = 'open'
     // console.log('DESC',replres.desc)
     
     let res = await si.post('sys:repl,send:cmd',{
@@ -126,7 +189,12 @@ describe('repl', function () {
     
   it('interaction', async function () {
     return new Promise((good, bad) => {
-      let si = Seneca({ log: 'silent' })
+      Seneca({legacy:false})
+      // .test()
+        .quiet()
+        .use('promisify')
+        .use('entity')
+        .use('entity-util', {when:{active:true}})
         .add('a:1', function (msg, reply) {
           reply({ x: msg.x })
         })
@@ -134,17 +202,20 @@ describe('repl', function () {
           reply(new Error('eek'))
         })
         .use('..', { port: 0 })
+
         .act('sys:repl,add:cmd', {
           name: 'foo',
-          action: function (cmd, argtext, context, options, respond) {
-            return respond(null, 'FOO:' + argtext)
+          // action: function (cmd, argtext, context, options, respond) {
+          action: function (spec) {
+            return spec.respond(null, 'FOO:' + spec.argstr)
           },
         })
-
+      
         .ready(function () {
-          var port = this.export('repl/address').port
-
-          var sock = Net.connect(port)
+          let si = this
+          
+          var addr = this.export('repl/address')
+          var sock = Net.connect(addr.port, addr.host)
 
           var result
           sock.on('data', function (buffer) {
@@ -157,6 +228,7 @@ describe('repl', function () {
               send: 'console.log(this)\n',
               expect: '{',
             },
+
             {
               send: 'set foo.bar 1\nseneca.options().foo\n',
               expect: 'bar',
@@ -217,9 +289,21 @@ describe('repl', function () {
               send: '1+1\n',
               expect: '2',
             },
+            {
+              send: 'save$ foo x:1\n',
+              expect: /Entity.*x: 1/s
+            },
+            {
+              send: 'save$ foo x:2\n',
+              expect: /Entity.*x: 2/s
+            },
+            {
+              send: 'list$ foo\n',
+              expect: /Entity.*x: 1.*x: 2/s,
+            },
           ]
 
-          console.log('QUIT')
+          // console.log('QUIT')
           sock.write('seneca.quit()\n')
 
           function nextStep() {
@@ -236,8 +320,13 @@ describe('repl', function () {
             setTimeout(function () {
               // console.log('RESULT: '+result)
               // console.log('EXPECT: '+step.expect)
-              if (step.expect) {
-                expect(result).toContain(step.expect)
+              if (null != step.expect) {
+                if('string' === typeof step.expect) {
+                  expect(result).toContain(step.expect)
+                }
+                else if(step.expect instanceof RegExp) {
+                  expect(result).toMatch(step.expect)
+                }
               }
               nextStep()
             }, 222 * tmx)
