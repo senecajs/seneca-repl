@@ -119,8 +119,6 @@ describe('repl', function () {
     var si = await Seneca()
       .use('promisify')
         .test()
-        .use('entity')
-        .use('entity-util', {when:{active}})
       .use(Plugin, { port: 0 })
       .ready()
 
@@ -195,6 +193,8 @@ describe('repl', function () {
       // .test()
         .quiet()
         .use('promisify')
+        .use('entity')
+        .use('entity-util', {when:{active:true}})
         .add('a:1', function (msg, reply) {
           reply({ x: msg.x })
         })
@@ -289,6 +289,18 @@ describe('repl', function () {
               send: '1+1\n',
               expect: '2',
             },
+            {
+              send: 'save$ foo x:1\n',
+              expect: /Entity.*x: 1/s
+            },
+            {
+              send: 'save$ foo x:2\n',
+              expect: /Entity.*x: 2/s
+            },
+            {
+              send: 'list$ foo\n',
+              expect: /Entity.*x: 1.*x: 2/s,
+            },
           ]
 
           // console.log('QUIT')
@@ -308,8 +320,13 @@ describe('repl', function () {
             setTimeout(function () {
               // console.log('RESULT: '+result)
               // console.log('EXPECT: '+step.expect)
-              if (step.expect) {
-                expect(result).toContain(step.expect)
+              if (null != step.expect) {
+                if('string' === typeof step.expect) {
+                  expect(result).toContain(step.expect)
+                }
+                else if(step.expect instanceof RegExp) {
+                  expect(result).toMatch(step.expect)
+                }
               }
               nextStep()
             }, 222 * tmx)
