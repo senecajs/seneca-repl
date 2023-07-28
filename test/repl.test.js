@@ -118,7 +118,9 @@ describe('repl', function () {
   it('happy', async function () {
     var si = await Seneca()
       .use('promisify')
-      .test()
+        .test()
+        .use('entity')
+        .use('entity-util', {when:{active}})
       .use(Plugin, { port: 0 })
       .ready()
 

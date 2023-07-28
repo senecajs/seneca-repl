@@ -119,6 +119,98 @@ const HelpCmd = (spec) => {
     const { context, respond } = spec;
     return respond(null, context.cmdMap);
 };
+const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/;
+const List$Cmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(CanonQueryRE);
+    if (m) {
+        let canon = m[1];
+        let qstr = m[5];
+        let seneca = context.seneca;
+        let query = seneca.util.Jsonic(qstr);
+        seneca.entity(canon).list$(query, function (err, out) {
+            if (err) {
+                return respond('ERROR: entity list$: ', err.message);
+            }
+            return respond(null, out);
+        });
+    }
+    else {
+        return respond('ERROR: expected: list$ [[zone/]base/]name [query]');
+    }
+};
+const Load$Cmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(CanonQueryRE);
+    if (m) {
+        let canon = m[1];
+        let qstr = m[5];
+        let seneca = context.seneca;
+        let query = seneca.util.Jsonic(qstr);
+        seneca.entity(canon).load$(query, function (err, out) {
+            if (err) {
+                return respond('ERROR: entity load$: ', err.message);
+            }
+            return respond(null, out);
+        });
+    }
+    else {
+        return respond('ERROR: expected: load$ [[zone/]base/]name [query]');
+    }
+};
+const Save$Cmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(CanonQueryRE);
+    if (m) {
+        let canon = m[1];
+        let qstr = m[5];
+        let seneca = context.seneca;
+        let query = seneca.util.Jsonic(qstr);
+        seneca.entity(canon).save$(query, function (err, out) {
+            if (err) {
+                return respond('ERROR: entity save$: ', err.message);
+            }
+            return respond(null, out);
+        });
+    }
+    else {
+        return respond('ERROR: expected: save$ [[zone/]base/]name [query]');
+    }
+};
+const Remove$Cmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(CanonQueryRE);
+    if (m) {
+        let canon = m[1];
+        let qstr = m[5];
+        let seneca = context.seneca;
+        let query = seneca.util.Jsonic(qstr);
+        seneca.entity(canon).load$(query, function (err, out) {
+            if (err) {
+                return respond('ERROR: entity remove$: ', err.message);
+            }
+            return respond(null, out);
+        });
+    }
+    else {
+        return respond('ERROR: expected: remove$ [[zone/]base/]name [query]');
+    }
+};
+const Entity$Cmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(CanonQueryRE);
+    if (m) {
+        let canon = m[1];
+        // let qstr = m[5]
+        let seneca = context.seneca;
+        // let query = seneca.util.Jsonic(qstr)
+        let ent = seneca.entity(canon);
+        return respond(null, ent);
+    }
+    else {
+        return respond('ERROR: expected: entity$ [[zone/]base/]name [query]');
+    }
+};
 const Cmds = {
     GetCmd,
     DepthCmd,
@@ -133,6 +225,11 @@ const Cmds = {
     AliasCmd,
     TraceCmd,
     HelpCmd,
+    List$Cmd,
+    Load$Cmd,
+    Save$Cmd,
+    Remove$Cmd,
+    Entity$Cmd,
 };
 exports.Cmds = Cmds;
 //# sourceMappingURL=cmds.js.map

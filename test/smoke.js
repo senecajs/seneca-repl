@@ -3,23 +3,35 @@ const Seneca = require('seneca')
 async function run() {
   try {
     let si = Seneca({legacy:false,
-                     debug:{undead:true},
+                     // debug:{undead:true},
                      death_delay:555})
   .test()
-  .error((err)=>{
-    console.log('=======ERROR', err.message)
-  })
-  .use('promisify')
-  // .use('entity')
-  // .use('..', {listen:false})
-  // .use('..$a',{ host: '0.0.0.0', port: 50505, depth: 1 })
-  .use('..$b',{ host: '0.0.0.0', port: 60606, depth: 1 })
-  .use('..$c',{ host: '0.0.0.0', port: 60606, depth: 1 })
-      .message('a:1', async (msg) => ({ x: msg.x }))
+        // .error((err)=>{
+        //   console.log('=======ERROR', err.message)
+        // })
+        .use('promisify')
+        .use('entity')
+    // .use('..', {listen:false})
+        .use('..')
+    // .use('..', {listen:false})
+    // .use('..$a',{ host: '0.0.0.0', port: 50505, depth: 1 })
+        // .use('..$b',{ host: '0.0.0.0', port: 60606, depth: 1 })
+        //.use('..$c',{ host: '0.0.0.0', port: 60606, depth: 1 })
+        .message('a:1', async (msg) => ({ x: msg.x }))
 
-  console.log('AAAA')
-  await si.ready()
-  console.log('BBBB')
+    //console.log('AAAA')
+    await si.ready()
+
+    si.entity('foo').save$({x:1})
+    si.entity('foo').save$({x:2})
+
+    si.entity('foo/bar').save$({n:'A',y:100})
+    si.entity('foo/bar').save$({n:'B',y:200})
+    si.entity('foo/bar').save$({n:'C',y:300})
+
+    await si.ready()
+    
+  //console.log('BBBB')
   
   // .ready(function () {
   //   console.log('READY')
