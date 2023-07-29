@@ -35,7 +35,7 @@ for (let cmd of Object.values(Cmds)) {
 
 function repl(this: any, options: any) {
   let seneca = this
-  let mark = Math.random()
+  // let mark = Math.random()
 
   let server: any = null
   let export_address: Record<string, any> = {}
@@ -60,6 +60,7 @@ function repl(this: any, options: any) {
           seneca.log.error('repl-socket', err)
         })
 
+        // TODO: fix: should be socket address!!!
         let address: any = server.address()
 
         seneca.act('sys:repl,use:repl', {
@@ -124,7 +125,9 @@ function repl(this: any, options: any) {
 
     let replInst: ReplInstance = replMap[replID]
 
-    if (replInst) {
+    // console.log('UR', replInst)
+
+    if (replInst && 'open' === replInst.status) {
       return reply({
         ok: true,
         repl: replInst
@@ -144,7 +147,14 @@ function repl(this: any, options: any) {
       input,
       output,
       server,
-      seneca: replSeneca
+      seneca: replSeneca,
+      event: (name: string) => {
+        if ('exit' === name) {
+          setTimeout(() => {
+            delete replMap[replID]
+          }, 1111)
+        }
+      }
     })
 
     replInst.update('open')
@@ -348,11 +358,13 @@ class ReplInstance {
   seneca: any
   options: any
   cmdMap: any
+  event: any
 
   constructor(spec: any) {
     this.id = spec.id
     this.cmdMap = spec.cmdMap
     this.server = spec.server
+    this.event = spec.event
 
     const options = this.options = spec.options
     const input = this.input = spec.input
@@ -360,7 +372,8 @@ class ReplInstance {
     const seneca = this.seneca = spec.seneca
 
     const repl = this.repl = Repl.start({
-      prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+      // prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+      prompt: '',
       input,
       output,
       terminal: false,
@@ -372,10 +385,12 @@ class ReplInstance {
       this.update('closed')
       input.end()
       output.end()
+      this.event('exit')
     })
 
     repl.on('error', (err: any) => {
       seneca.log.error('repl', err)
+      this.event('error')
     })
 
 
@@ -413,12 +428,21 @@ class ReplInstance {
   }
 
 
-  evaluate(cmdtext: any, context: any, filename: any, respond: any) {
+  evaluate(cmdtext: any, context: any, filename: any, origRespond: any) {
     const seneca = this.seneca
     const repl = this.repl
     const options = this.options
     const alias = options.alias
     const output = this.output
+
+    const respond = (...args: any) => {
+      origRespond(...args)
+      output.write(String.fromCharCode(0))
+      // output.write(new Uint8Array([0]))
+      // output.write('Z')
+    }
+
+
     let cmd_history = context.history
 
     cmdtext = cmdtext.trim()
@@ -478,24 +502,31 @@ class ReplInstance {
           context.err = err
           context.out = out
 
+          // EXPERIMENTAL! msg ~> x saves msg result into x
           if (m[1]) {
             let ma = m[1].split(/\s*=\s*/)
             if (2 === ma.length) {
               context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
             }
+            else {
+              context[m[1]] = out
+            }
           }
 
           if (out && !repl.context.act_trace) {
-            out =
-              out && out.entity$
-                ? out
-                : context.inspekt(seneca.util.clean(out))
-            output.write(out + '\n')
-            output.write(new Uint8Array([0]))
+            // out =
+            //   out && out.entity$
+            //     ? out
+            //     : context.inspekt(seneca.util.clean(out))
+
+            respond(null, out)
+            // output.write(out + '\n')
+            // output.write(new Uint8Array([0]))
 
           }
           else if (err) {
-            output.write(context.inspekt(err) + '\n')
+            // output.write(context.inspekt(err) + '\n')
+            respond(err)
           }
         })
 
@@ -542,15 +573,16 @@ class ReplInstance {
                 respond(null, result)
               })
               .catch((e: any) => {
-                return respond(e.message)
+                return respond(e)
               })
           }
           catch (e: any) {
-            return respond(e.message)
+            return respond(e)
           }
         }
         else {
-          return respond(e.message)
+          // return respond(e.message)
+          return respond(e)
         }
       }
     }

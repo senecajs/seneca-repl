@@ -41,7 +41,6 @@
   },
   "dependencies": {
     "@hapi/hoek": "^11.0.2",
-    "@seneca/vorpal": "^2.2.0",
     "inks": "^2.0.0"
   },
   "devDependencies": {

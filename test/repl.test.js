@@ -116,39 +116,59 @@ describe('repl', function () {
 
   
   it('happy', async function () {
-    var si = await Seneca()
+    const si = await Seneca()
       .use('promisify')
         .test()
       .use(Plugin, { port: 0 })
       .ready()
 
-    var addr = si.export('repl/address')
+    const addr = si.export('repl/address')
+    // console.log('ADDR', addr)
 
-    var result = ''
-    var sock = Net.connect(addr.port, addr.host)
-    var first = true
+    let concheck = (good, bad) => {
+      let result = ''
+      let first = true
+      const sock = Net.connect(addr.port, addr.host)
+      sock
+        .on('error', (err)=>{
+          // console.log('QQQ bad', err)
+          bad(err)
+        })
+        .on('connect', ()=>{
+          // console.log('QQQ connect')
+          sock.write('hello\n')
+        })
+        .on('data', function (data) {
+          // console.log('QQQ data')
+          result = data.toString('ascii')
+          // console.log('R=',result)
+          expect(result).toContain('version')
 
-    return new Promise((good, bad) => {
-      sock.on('data', function (data) {
-        result += data.toString('ascii')
-
-        expect(result).toContain('seneca')
-        if (first) {
-          setTimeout(function () {
-            first = false
-
-            expect(result).toContain('->')
-            
-            sock.write('this\n')
-          }, 50 * tmx)
-        } else {
-          expect(result).toContain('->')
-          sock.write('seneca.quit\n')
-          sock.destroy()
-          sock.removeAllListeners('data')
+          if (first) {
+            setTimeout(function () {
+              first = false
+              sock.write('this\n')
+            }, 50 * tmx)
+          }
+          else {
+            // console.log(result)
+            expect(result).toContain('seneca')
+            // sock.write('seneca.quit\n')
+            sock.destroy()
+            sock.removeAllListeners('data')
+            good()
+          }
+        })
+    }
+    
+    return new Promise((good, bad)=>{
+      concheck(()=>{
+        // console.log('AAA')
+        concheck(()=>{
+          // console.log('BBB')
           si.close(good)
-        }
-      })
+        }, bad)
+      }, bad)
     })
   })
   
@@ -161,13 +181,13 @@ describe('repl', function () {
       .use(Plugin, { port: 0 })
       .ready()
 
-    let replres = await si.post('sys:repl,use:repl',
-                             {id:'foo'}
-                            )
+    let replres0 = await si.post(
+      'sys:repl,use:repl',
+      {id:'foo'}
+    )
 
-    // TODO: fix!
-    // replres.desc.status = 'open'
-    // console.log('DESC',replres.desc)
+    // console.log(replres0)
+    expect(replres0.ok).toEqual(true)
     
     let res = await si.post('sys:repl,send:cmd',{
       id: 'foo',
@@ -175,14 +195,81 @@ describe('repl', function () {
     })
 
     // console.log('RES0',res)
-
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 1, 'repl$': true, 'fatal$': false }\n"
+    )
+    
     res = await si.post('sys:repl,send:cmd',{
       id: 'foo',
       cmd: 'sys:repl,echo:true,x:2\n'
     })
 
     // console.log('RES1',res)
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 2, 'repl$': true, 'fatal$': false }\n"
+    )
 
+
+    let replres1 = await si.post(
+      'sys:repl,use:repl',
+      {id:'foo'}
+    )
+
+    // console.log(replres1)
+    expect(replres1.ok).toEqual(true)
+    
+    res = await si.post('sys:repl,send:cmd',{
+      id: 'foo',
+      cmd: 'sys:repl,echo:true,x:11\n'
+    })
+
+    // console.log('RES2',res)
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 11, 'repl$': true, 'fatal$': false }\n"
+    )
+
+    
+    res = await si.post('sys:repl,send:cmd',{
+      id: 'foo',
+      cmd: 'sys:repl,echo:true,x:22\n'
+    })
+
+    // console.log('RES3',res)
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 22, 'repl$': true, 'fatal$': false }\n"
+    )
+
+
+    let replres2 = await si.post(
+      'sys:repl,use:repl',
+      {id:'bar'}
+    )
+
+    // console.log(replres1)
+    expect(replres2.ok).toEqual(true)
+    
+    res = await si.post('sys:repl,send:cmd',{
+      id: 'bar',
+      cmd: 'sys:repl,echo:true,x:111\n'
+    })
+
+    // console.log('RES2',res)
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 111, 'repl$': true, 'fatal$': false }\n"
+    )
+
+    
+    res = await si.post('sys:repl,send:cmd',{
+      id: 'bar',
+      cmd: 'sys:repl,echo:true,x:222\n'
+    })
+
+    // console.log('RES3',res)
+    expect(res.out).toEqual(
+      "{ sys: 'repl', echo: true, x: 222, 'repl$': true, 'fatal$': false }\n"
+    )
+
+    
     await si.close()
   })
 
@@ -263,7 +350,8 @@ describe('repl', function () {
             },
             {
               send: 'alias a1x3 a:1,x:3\n',
-              expect: 'seneca',
+              // expect: 'seneca',
+              expect: '',
             },
             {
               send: 'a1x3\n',
@@ -304,7 +392,7 @@ describe('repl', function () {
           ]
 
           // console.log('QUIT')
-          sock.write('seneca.quit()\n')
+          // sock.write('seneca.quit()\n')
 
           function nextStep() {
             var step = conversation.shift()
@@ -332,8 +420,9 @@ describe('repl', function () {
             }, 222 * tmx)
           }
 
+          sock.write('hello\n')
           setTimeout(function () {
-            expect(result).toContain('seneca')
+            expect(result).toContain('version')
             nextStep()
           }, 222 * tmx)
         })

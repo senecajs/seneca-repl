@@ -22,7 +22,7 @@ for (let cmd of Object.values(cmds_1.Cmds)) {
 }
 function repl(options) {
     let seneca = this;
-    let mark = Math.random();
+    // let mark = Math.random()
     let server = null;
     let export_address = {};
     let replMap = {};
@@ -38,6 +38,7 @@ function repl(options) {
                 socket.on('error', function (err) {
                     seneca.log.error('repl-socket', err);
                 });
+                // TODO: fix: should be socket address!!!
                 let address = server.address();
                 seneca.act('sys:repl,use:repl', {
                     id: address.address + '~' + address.port,
@@ -85,7 +86,8 @@ function repl(options) {
         let seneca = this;
         let replID = msg.id || (options.host + '~' + options.port);
         let replInst = replMap[replID];
-        if (replInst) {
+        // console.log('UR', replInst)
+        if (replInst && 'open' === replInst.status) {
             return reply({
                 ok: true,
                 repl: replInst
@@ -102,7 +104,14 @@ function repl(options) {
             input,
             output,
             server,
-            seneca: replSeneca
+            seneca: replSeneca,
+            event: (name) => {
+                if ('exit' === name) {
+                    setTimeout(() => {
+                        delete replMap[replID];
+                    }, 1111);
+                }
+            }
         });
         replInst.update('open');
         return reply({
@@ -255,12 +264,14 @@ class ReplInstance {
         this.id = spec.id;
         this.cmdMap = spec.cmdMap;
         this.server = spec.server;
+        this.event = spec.event;
         const options = this.options = spec.options;
         const input = this.input = spec.input;
         const output = this.output = spec.output;
         const seneca = this.seneca = spec.seneca;
         const repl = this.repl = node_repl_1.default.start({
-            prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+            // prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
+            prompt: '',
             input,
             output,
             terminal: false,
@@ -271,9 +282,11 @@ class ReplInstance {
             this.update('closed');
             input.end();
             output.end();
+            this.event('exit');
         });
         repl.on('error', (err) => {
             seneca.log.error('repl', err);
+            this.event('error');
         });
         Object.assign(repl.context, {
             // NOTE: don't trigger funnies with a .inspect property
@@ -303,12 +316,18 @@ class ReplInstance {
     update(status) {
         this.status = status;
     }
-    evaluate(cmdtext, context, filename, respond) {
+    evaluate(cmdtext, context, filename, origRespond) {
         const seneca = this.seneca;
         const repl = this.repl;
         const options = this.options;
         const alias = options.alias;
         const output = this.output;
+        const respond = (...args) => {
+            origRespond(...args);
+            output.write(String.fromCharCode(0));
+            // output.write(new Uint8Array([0]))
+            // output.write('Z')
+        };
         let cmd_history = context.history;
         cmdtext = cmdtext.trim();
         if ('last' === cmdtext && 0 < cmd_history.length) {
@@ -352,22 +371,28 @@ class ReplInstance {
                 context.s.act(args, function (err, out) {
                     context.err = err;
                     context.out = out;
+                    // EXPERIMENTAL! msg ~> x saves msg result into x
                     if (m[1]) {
                         let ma = m[1].split(/\s*=\s*/);
                         if (2 === ma.length) {
                             context[ma[0]] = hoek_1.default.reach({ out: out, err: err }, ma[1]);
                         }
+                        else {
+                            context[m[1]] = out;
+                        }
                     }
                     if (out && !repl.context.act_trace) {
-                        out =
-                            out && out.entity$
-                                ? out
-                                : context.inspekt(seneca.util.clean(out));
-                        output.write(out + '\n');
-                        output.write(new Uint8Array([0]));
+                        // out =
+                        //   out && out.entity$
+                        //     ? out
+                        //     : context.inspekt(seneca.util.clean(out))
+                        respond(null, out);
+                        // output.write(out + '\n')
+                        // output.write(new Uint8Array([0]))
                     }
                     else if (err) {
-                        output.write(context.inspekt(err) + '\n');
+                        // output.write(context.inspekt(err) + '\n')
+                        respond(err);
                     }
                 });
                 return true;
@@ -408,15 +433,16 @@ class ReplInstance {
                             respond(null, result);
                         })
                             .catch((e) => {
-                            return respond(e.message);
+                            return respond(e);
                         });
                     }
                     catch (e) {
-                        return respond(e.message);
+                        return respond(e);
                     }
                 }
                 else {
-                    return respond(e.message);
+                    // return respond(e.message)
+                    return respond(e);
                 }
             }
         }

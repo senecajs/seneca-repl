@@ -8,6 +8,17 @@ exports.Cmds = void 0;
 const hoek_1 = __importDefault(require("@hapi/hoek"));
 const utils_1 = require("./utils");
 // NOTE: The function name prefix (lowercased) is the command name.
+const HelloCmd = (spec) => {
+    var _a, _b;
+    const { context, respond } = spec;
+    let out = {
+        version: context.seneca.version,
+        id: context.seneca.id,
+        when: Date.now(),
+        address: (_b = (_a = context.input) === null || _a === void 0 ? void 0 : _a.address) === null || _b === void 0 ? void 0 : _b.call(context.input)
+    };
+    return respond(null, JSON.stringify(out));
+};
 const GetCmd = (spec) => {
     const { argstr, context, respond } = spec;
     let option_path = argstr.trim();
@@ -30,11 +41,12 @@ const PlainCmd = (spec) => {
     context.plain = !context.plain;
     return respond();
 };
-const QuitCmd = (spec) => {
-    const { context, respond } = spec;
-    context.socket.end();
-    respond();
-};
+/*
+const QuitCmd: Cmd = (spec: CmdSpec) => {
+  const { context, respond } = spec
+  respond()
+}
+*/
 const ListCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let narrow = context.seneca.util.Jsonic(argstr);
@@ -212,10 +224,11 @@ const Entity$Cmd = (spec) => {
     }
 };
 const Cmds = {
+    HelloCmd,
     GetCmd,
     DepthCmd,
     PlainCmd,
-    QuitCmd,
+    // QuitCmd,
     ListCmd,
     FindCmd,
     PriorCmd,

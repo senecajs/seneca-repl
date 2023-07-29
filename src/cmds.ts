@@ -17,6 +17,18 @@ import {
 
 // NOTE: The function name prefix (lowercased) is the command name.
 
+const HelloCmd: Cmd = (spec: CmdSpec) => {
+  const { context, respond } = spec
+  let out = {
+    version: context.seneca.version,
+    id: context.seneca.id,
+    when: Date.now(),
+    address: context.input?.address?.call(context.input)
+  }
+  return respond(null, JSON.stringify(out))
+}
+
+
 const GetCmd: Cmd = (spec: CmdSpec) => {
   const { argstr, context, respond } = spec
 
@@ -46,12 +58,12 @@ const PlainCmd: Cmd = (spec: CmdSpec) => {
 }
 
 
-
+/*
 const QuitCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
-  context.socket.end()
   respond()
 }
+*/
 
 
 const ListCmd: Cmd = (spec: CmdSpec) => {
@@ -287,10 +299,11 @@ const Entity$Cmd: Cmd = (spec: CmdSpec) => {
 
 
 const Cmds: Record<string, Cmd> = {
+  HelloCmd,
   GetCmd,
   DepthCmd,
   PlainCmd,
-  QuitCmd,
+  // QuitCmd,
   ListCmd,
   FindCmd,
   PriorCmd,
