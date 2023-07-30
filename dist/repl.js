@@ -134,12 +134,15 @@ function repl(options) {
         let out = [];
         // TODO: dedup this
         // use a FILO queue
-        replInst.output.on('data', (chunk) => {
+        let listener = (chunk) => {
             if (0 === chunk[0]) {
+                replInst.output.removeListener('data', listener);
                 reply({ out: out.join('') });
             }
             out.push(chunk.toString());
-        });
+        };
+        replInst.output.on('data', listener);
+        // console.log('SC write', cmd)
         replInst.input.write(cmd);
     }
     function add_cmd(msg, reply) {
@@ -161,14 +164,16 @@ function repl(options) {
         },
     };
 }
-function updateStatus(replInst, newStatus) {
-    replInst.status = newStatus;
-    replInst.log.push({
-        kind: 'status',
-        status: newStatus,
-        when: Date.now()
-    });
+/*
+function updateStatus(replInst: any, newStatus: string) {
+  replInst.status = newStatus
+  replInst.log.push({
+    kind: 'status',
+    status: newStatus,
+    when: Date.now()
+  })
 }
+*/
 function make_intern() {
     return {
         fmt_index: function (i) {
@@ -317,6 +322,7 @@ class ReplInstance {
         this.status = status;
     }
     evaluate(cmdtext, context, filename, origRespond) {
+        // console.log('EVAL', cmdtext)
         const seneca = this.seneca;
         const repl = this.repl;
         const options = this.options;
@@ -336,6 +342,7 @@ class ReplInstance {
         else {
             cmd_history.push(cmdtext);
         }
+        // console.log('AAA', cmdtext)
         if (alias[cmdtext]) {
             cmdtext = alias[cmdtext];
         }
@@ -351,11 +358,12 @@ class ReplInstance {
             return cmd_func({ name: cmd, argstr, context, options, respond });
         }
         if (!execute_action(cmdtext)) {
-            context.s.ready(() => {
-                execute_script(cmdtext);
-            });
+            // context.s.ready(() => {
+            execute_script(cmdtext);
+            //})
         }
         function execute_action(cmdtext) {
+            // console.log('EA', cmdtext)
             try {
                 let msg = cmdtext;
                 // TODO: use a different operator! will conflict with => !!!
@@ -365,7 +373,9 @@ class ReplInstance {
                 }
                 let injected_msg = Inks(msg, context);
                 let args = seneca.util.Jsonic(injected_msg);
-                if (null == args || Array.isArray(args) || 'object' !== typeof args) {
+                let notmsg = (null == args || Array.isArray(args) || 'object' !== typeof args);
+                // console.log('ARGS', args, notmsg)
+                if (notmsg) {
                     return false;
                 }
                 context.s.act(args, function (err, out) {
@@ -405,6 +415,7 @@ class ReplInstance {
             }
         }
         function execute_script(cmdtext) {
+            // console.log('EVAL SCRIPT', cmdtext)
             try {
                 let script = node_vm_1.default.createScript(cmdtext, {
                     filename: filename,

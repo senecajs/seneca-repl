@@ -187,16 +187,20 @@ function repl(this: any, options: any) {
 
     // TODO: dedup this
     // use a FILO queue
-    replInst.output.on('data', (chunk: Buffer) => {
+
+    let listener = (chunk: Buffer) => {
       if (0 === chunk[0]) {
+        replInst.output.removeListener('data', listener)
         reply({ out: out.join('') })
       }
 
       out.push(chunk.toString())
-    })
+    }
 
+    replInst.output.on('data', listener)
+
+    // console.log('SC write', cmd)
     replInst.input.write(cmd)
-
   }
 
 
@@ -224,6 +228,7 @@ function repl(this: any, options: any) {
 }
 
 
+/*
 function updateStatus(replInst: any, newStatus: string) {
   replInst.status = newStatus
   replInst.log.push({
@@ -232,6 +237,7 @@ function updateStatus(replInst: any, newStatus: string) {
     when: Date.now()
   })
 }
+*/
 
 
 function make_intern() {
@@ -429,6 +435,7 @@ class ReplInstance {
 
 
   evaluate(cmdtext: any, context: any, filename: any, origRespond: any) {
+    // console.log('EVAL', cmdtext)
     const seneca = this.seneca
     const repl = this.repl
     const options = this.options
@@ -454,6 +461,8 @@ class ReplInstance {
       cmd_history.push(cmdtext)
     }
 
+    // console.log('AAA', cmdtext)
+
     if (alias[cmdtext]) {
       cmdtext = alias[cmdtext]
     }
@@ -476,12 +485,13 @@ class ReplInstance {
     }
 
     if (!execute_action(cmdtext)) {
-      context.s.ready(() => {
-        execute_script(cmdtext)
-      })
+      // context.s.ready(() => {
+      execute_script(cmdtext)
+      //})
     }
 
     function execute_action(cmdtext: string) {
+      // console.log('EA', cmdtext)
       try {
         let msg = cmdtext
 
@@ -494,7 +504,12 @@ class ReplInstance {
         let injected_msg = Inks(msg, context)
         let args = seneca.util.Jsonic(injected_msg)
 
-        if (null == args || Array.isArray(args) || 'object' !== typeof args) {
+        let notmsg =
+          (null == args || Array.isArray(args) || 'object' !== typeof args)
+
+        // console.log('ARGS', args, notmsg)
+
+        if (notmsg) {
           return false
         }
 
@@ -540,6 +555,7 @@ class ReplInstance {
     }
 
     function execute_script(cmdtext: any) {
+      // console.log('EVAL SCRIPT', cmdtext)
       try {
         let script = (Vm as any).createScript(cmdtext, {
           filename: filename,

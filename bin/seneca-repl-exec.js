@@ -7,7 +7,10 @@ const OS = require('node:os')
 const FS = require('node:fs')
 const Path = require('node:path')
 const Net = require('node:net')
-const Readline = require('node:readline');
+const Readline = require('node:readline')
+const Http = require('node:http')
+const Https = require('node:https')
+const { Duplex } = require('node:stream')
 
 
 const state = {
@@ -82,8 +85,7 @@ if(FS.existsSync(historyPath)) {
 
 let historyFile = null
 
-
-reconnect({
+let spec = {
   log: console.log,
   url,
   host,
@@ -91,11 +93,88 @@ reconnect({
   scope,
   delay: 1111,
   first: true
-})
+}
+
+class RequestStream extends Duplex {
+  constructor(spec, options) {
+    super(options)
+    this.spec = spec
+    this.buffer = []
+    // console.log('HTTP CTOR')
+  }
+
+  _write(chunk, encoding, callback) {
+    const cmd = chunk.toString().trim()
+    // console.log('HTTP WRITE', cmd)
+
+    // this.buffer.push('FOO'+String.fromCharCode(0))
+    // this._read()
+    // return callback()
+
+    
+    const url = this.spec.url
+    
+    // Determine whether to use http or https based on the URL
+    const httpClient = url.href.startsWith('https://') ? Https : Http
+
+    const postData = JSON.stringify({
+      cmd
+    })
+    
+    let req = httpClient.request(
+      url.href,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+        },
+      },
+      (response) => {
+        let data = ''
+
+        response.on('data', (chunk) => {
+          data += chunk
+        })
+
+        response.on('end', () => {
+          let res = JSON.parse(data)
+
+          // console.log('HE', data, res)
+          
+          this.buffer.push(res.out+String.fromCharCode(0))
+          this._read()
+          callback()
+        })
+      })
+        .on('error', (err) => {
+          // console.log('HE', err)
+          this.buffer.push(`# ERROR: ${err}\n`+String.fromCharCode(0))
+          this._read()
+          callback()
+        })
+
+    req.write(postData)
+    req.end()
+  }
+
+  _read(size) {
+    // console.log('H READ')
+    let chunk
+    while ((chunk = this.buffer.shift())) {
+      if (!this.push(chunk)) {
+        break
+      }
+    }
+  }
+}
+
+
+reconnect(spec)
 
 
 function reconnect(spec) {
-  telnet(spec, function(result) {
+  operate(spec, function(result) {
     if(result) {
       if(false === result.connect && !spec.quit && !spec.first) {
         setTimeout(()=>{
@@ -115,12 +194,23 @@ function reconnect(spec) {
 }
 
 
-function telnet(spec, done) {
+function operate(spec, done) {
   state.connection.first = true
   state.connection.quit = false
-  state.connection.sock = Net.connect(spec.port, spec.host)
 
+  // state.connection.sock = Net.connect(spec.port, spec.host)
+  try {
+    state.connection.sock = connect(spec)
+    // console.log('SOCK', !!state.connection.sock)
+  }
+  catch(err) {
+    // console.log('CA', err)
+    return done({err})
+  }
+  
   state.connection.sock.on('connect', function() {
+    // console.log('SOCK connect')
+    
     state.connection.open = true
     delete state.connection.closed
 
@@ -136,12 +226,14 @@ function telnet(spec, done) {
   })
 
   state.connection.sock.on('error', function(err) {
+    // console.log('CE', err)
     if(state.connection.open) {
       return done({event:'error',err})
     }
   })
 
   state.connection.sock.on('close', function(err) {
+    // console.log('CC', err)
     if(state.connection.open) {
       spec.log('\n\nConnection closed.')
     }
@@ -160,7 +252,8 @@ function telnet(spec, done) {
   
   state.connection.sock.on('data', function(chunk) {
     const str = chunk.toString('ascii')
-
+    // console.log('SOCK DATA', str)
+    
     if (0 < str.length && 0 === str.charCodeAt(str.length-1) ) {
       responseChunks.push(str)
       let received = responseChunks
@@ -185,7 +278,20 @@ function telnet(spec, done) {
           .replace(/[\r\n]/g,'')
 
       jsonstr = jsonstr.substring(1,jsonstr.length-1)
-      state.connection.remote = JSON.parse(jsonstr)
+
+      try {
+        state.connection.remote = JSON.parse(jsonstr)
+      }
+      catch(err) {
+        if(received.startsWith('# ERROR')) {
+          console.log(received)
+        }
+        else {
+          console.log('# HELLO ERROR: ', err.message, 'hello:', received)
+        }
+
+        process.exit(1)
+      }
       
       state.connection.prompt = state.connection.remote.id+'> ' 
       
@@ -223,7 +329,7 @@ function telnet(spec, done) {
           })
           .on('error', (err) => {
             console.log('# READLINE ERROR:', err)
-            process.exit(0)
+            process.exit(1)
           })
           .on('close', () => {
             process.exit(0)
@@ -243,4 +349,43 @@ function telnet(spec, done) {
     }
   }
 }
+
+
+
+// Create a duplex stream to operate the REPL
+function connect(spec) {
+
+  let duplex = null
+  let protocol = spec.url.protocol
+
+  if('telnet:' === protocol) {
+    duplex = Net.connect(spec.port, spec.host)
+  }
+  else if('http:' === protocol || 'https:' === protocol) {
+    duplex = makeHttpDuplex(spec)
+  }
+  else {
+    throw new Error('unknown protocol: '+protocol+' for url: '+spec.url.href)
+  }
+  
+  return duplex
+}
+
+
+
+
+
+// Assumes endpoint will call sys:repl,send:cmd
+// POST Body is: {cmd}
+function makeHttpDuplex(spec) {
+  let reqstream = new RequestStream(spec)
+  setImmediate(()=>{
+    reqstream.emit('connect')
+  })
+  return reqstream
+}
+
+
+
+
 
