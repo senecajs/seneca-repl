@@ -18,19 +18,51 @@ const state = {
 let host = '127.0.0.1'
 let port = 30303
 
-let uri = process.argv[2]
+let replAddr = process.argv[2]
+let portArg = process.argv[3]
 
-let m = uri.match(/^(.*):(\d+)$/)
+let url = 'telnet:'+host+':'+port
+let scope = 'default'
 
-if(m) {
-  host = m[1]
-  port = m[2]
+// NOTE: backwards compatibility: seneca-repl localhost 30303
+
+if(null == replAddr) {
+  replAddr = 'telnet://'+host+':'+port
+}
+
+else if(null != portArg) {
+  host = replAddr
+  port = parseInt(portArg)
+  replAddr = 'telnet://'+host+':'+port
+}
+
+else {
+  if(!replAddr.includes('://')) {
+    replAddr = 'telnet://'+replAddr
+  }
+}
+
+// TODO: support other protocals - http endpoint,
+// lambda invoke (via sub plugin @seneca/repl-aws)
+
+try {
+  url = new URL(replAddr)
+  // console.log('URL', url)
+  
+  host = url.hostname || host
+  port = '' === url.port ? port : parseInt(url.port)
+  
+  // NOTE: use URL params for additional args
+  scope = url.searchParams.get('scope')
+  scope = (null == scope || '' === scope) ? 'default' : scope
+}
+catch(e) {
+  console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
+  process.exit(1)
 }
 
 
 const history = []
-
-const scope = 'default'
 
 const senecaFolder = Path.join(OS.homedir(),'.seneca')
 
@@ -38,7 +70,8 @@ if(!FS.existsSync(senecaFolder)) {
   FS.mkdirSync(senecaFolder)
 }
 
-const historyPath = Path.join(senecaFolder,'repl-'+scope+'.history')
+const historyName = encodeURIComponent(replAddr)
+const historyPath = Path.join(senecaFolder,'repl-'+historyName+'.history')
 
 if(FS.existsSync(historyPath)) {
   const lines = FS.readFileSync(historyPath).toString()
@@ -48,27 +81,23 @@ if(FS.existsSync(historyPath)) {
 }
 
 let historyFile = null
-try {
-  historyFile = FS.openSync(historyPath,'a')
-}
-catch(e) {
-  // Don't save history
-}
 
 
 reconnect({
   log: console.log,
-  uri,
+  url,
   host,
   port,
-  delay: 1111
+  scope,
+  delay: 1111,
+  first: true
 })
 
 
 function reconnect(spec) {
   telnet(spec, function(result) {
     if(result) {
-      if(false === result.connect && !spec.quit) {
+      if(false === result.connect && !spec.quit && !spec.first) {
         setTimeout(()=>{
           spec.delay = Math.min(spec.delay * 1.1, 33333)
           reconnect(spec)
@@ -80,6 +109,7 @@ function reconnect(spec) {
     }
     else {
       console.log('# CONNECTION ERROR: no-result')
+      process.exit(1)
     }
   })
 }
@@ -94,6 +124,13 @@ function telnet(spec, done) {
     state.connection.open = true
     delete state.connection.closed
 
+    try {
+      historyFile = FS.openSync(historyPath,'a')
+    }
+    catch(e) {
+      // Don't save history
+    }
+    
     state.connection.sock.write('hello\n')
     done({connect:true,event:'connect'})
   })
@@ -130,6 +167,7 @@ function telnet(spec, done) {
           .join('')
       received = received.substring(0,received.length-1)
       responseChunks.length = 0
+      spec.first = false
       handleResponse(received)
     }
     else if (0 < str.length) {
@@ -151,7 +189,7 @@ function telnet(spec, done) {
       
       state.connection.prompt = state.connection.remote.id+'> ' 
       
-      spec.log('Connected to: ', state.connection.remote)
+      spec.log('Connected to Seneca:', state.connection.remote)
 
 
       if(null == state.connection.readline) {
@@ -206,124 +244,3 @@ function telnet(spec, done) {
   }
 }
 
-
-
-/*
-function repl(vorpal) {
-  vorpal
-    .mode('repl')
-    .delimiter('-> ')
-    .init(function(args, cb) {
-      if(!state.connection.open) {
-        this.log('No connection. Type `exit` and use `connect`.')
-      }
-      cb()
-    })
-    .action(function(args, callback) {
-      if(this.session && state.connection.remote_seneca) {
-        this.session._modeDelimiter = state.connection.remote_seneca + '-> '
-      }
-
-      var cmd = args+'\n'
-
-      state.connection.sock.write(cmd)
-      callback()
-    })
-}
-
-function connect(vorpal) {
-  vorpal
-    .command('connect [host] [port]')
-    .action(function(args, callback) {
-      var host = args.host || 'localhost'
-      var port = parseInt(args.port || 30303, 10)
-      this.log('Connecting to '+host+':'+port+' ...')
-      var log = this.log.bind(this)
-      state.connection = {}
-      
-      telnet({log:log, host:host, port:port},function(err) {
-        if(err) {
-          log(err)
-        }
-        else {
-          vorpal.history('seneca~'+host+'~'+port)
-          vorpal.exec('repl')
-        }
-        callback()
-      })
-    })
-}
-
-vorpal
-  .delimiter('seneca: ')
-  .use(repl)
-  .use(connect)
-
-vorpal
-  .show()
-
-if(2 < process.argv.length) {
-  launchConnect()
-
-  setInterval(()=>{
-    if(state.connection.closed) {
-      launchConnect()
-    }
-  },1111)
-}
-
-
-function launchConnect() {  
-  vorpal
-    .exec(['connect'].concat(process.argv.slice(2)).join(' '))
-}
-
-
-function telnet(spec, done) {
-  state.connection.first = true
-  state.connection.sock = Net.connect(spec.port, spec.host)
-
-  state.connection.sock.on('connect', function() {
-    state.connection.open = true
-    delete state.connection.closed
-    done()
-  })
-
-  state.connection.sock.on('error', function(err) {
-    if(!state.connection.closed) {
-      done(err)
-    }
-  })
-
-  state.connection.sock.on('close', function(err) {
-    state.connection.open = false
-    state.connection.closed = true
-    spec.log('Connection closed.')
-    vorpal.execSync('exit')
-  })
-
-  state.connection.sock.on('data', function(buffer) {
-    var received = buffer.toString('ascii')
-
-    if(state.connection.first) {
-      state.connection.first = false
-
-      state.connection.remote_prompt = received
-      
-      state.connection.remote_seneca = received
-        .replace(/^seneca\s+/,'')
-        .replace(/->.*$/,'')
-
-      spec.log('Connected to '+state.connection.remote_seneca)
-    }
-    else {
-      var rp = received.indexOf(state.connection.remote_prompt)
-      if(-1 != rp) {
-        received = received.substring(0,rp)
-      }
-      received = received.replace(/\n+$/, '\n')
-      spec.log(received)
-    }
-  })
-}
-*/
