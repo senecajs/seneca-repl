@@ -12,11 +12,9 @@ const Http = require('node:http')
 const Https = require('node:https')
 const { Duplex } = require('node:stream')
 
-
 const state = {
-  connection: {}
+  connection: {},
 }
-
 
 let host = '127.0.0.1'
 let port = 30303
@@ -24,24 +22,20 @@ let port = 30303
 let replAddr = process.argv[2]
 let portArg = process.argv[3]
 
-let url = 'telnet:'+host+':'+port
+let url = 'telnet:' + host + ':' + port
 let scope = 'default'
 
 // NOTE: backwards compatibility: seneca-repl localhost 30303
 
-if(null == replAddr) {
-  replAddr = 'telnet://'+host+':'+port
-}
-
-else if(null != portArg) {
+if (null == replAddr) {
+  replAddr = 'telnet://' + host + ':' + port
+} else if (null != portArg) {
   host = replAddr
   port = parseInt(portArg)
-  replAddr = 'telnet://'+host+':'+port
-}
-
-else {
-  if(!replAddr.includes('://')) {
-    replAddr = 'telnet://'+replAddr
+  replAddr = 'telnet://' + host + ':' + port
+} else {
+  if (!replAddr.includes('://')) {
+    replAddr = 'telnet://' + replAddr
   }
 }
 
@@ -51,36 +45,34 @@ else {
 try {
   url = new URL(replAddr)
   // console.log('URL', url)
-  
+
   host = url.hostname || host
   port = '' === url.port ? port : parseInt(url.port)
-  
+
   // NOTE: use URL params for additional args
   scope = url.searchParams.get('scope')
-  scope = (null == scope || '' === scope) ? 'default' : scope
-}
-catch(e) {
+  scope = null == scope || '' === scope ? 'default' : scope
+} catch (e) {
   console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
 }
 
-
 const history = []
 
-const senecaFolder = Path.join(OS.homedir(),'.seneca')
+const senecaFolder = Path.join(OS.homedir(), '.seneca')
 
-if(!FS.existsSync(senecaFolder)) {
+if (!FS.existsSync(senecaFolder)) {
   FS.mkdirSync(senecaFolder)
 }
 
 const historyName = encodeURIComponent(replAddr)
-const historyPath = Path.join(senecaFolder,'repl-'+historyName+'.history')
+const historyPath = Path.join(senecaFolder, 'repl-' + historyName + '.history')
 
-if(FS.existsSync(historyPath)) {
+if (FS.existsSync(historyPath)) {
   const lines = FS.readFileSync(historyPath).toString()
   lines
     .split(/[\r\n]+/)
-    .map(line=>(null!=line&&''!=line)?history.push(line):null)
+    .map((line) => (null != line && '' != line ? history.push(line) : null))
 }
 
 let historyFile = null
@@ -92,7 +84,7 @@ let spec = {
   port,
   scope,
   delay: 1111,
-  first: true
+  first: true,
 }
 
 class RequestStream extends Duplex {
@@ -111,48 +103,49 @@ class RequestStream extends Duplex {
     // this._read()
     // return callback()
 
-    
     const url = this.spec.url
-    
+
     // Determine whether to use http or https based on the URL
     const httpClient = url.href.startsWith('https://') ? Https : Http
 
     const postData = JSON.stringify({
-      cmd
+      cmd,
     })
-    
-    let req = httpClient.request(
-      url.href,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData),
+
+    let req = httpClient
+      .request(
+        url.href,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+          },
         },
-      },
-      (response) => {
-        let data = ''
+        (response) => {
+          let data = ''
 
-        response.on('data', (chunk) => {
-          data += chunk
-        })
+          response.on('data', (chunk) => {
+            data += chunk
+          })
 
-        response.on('end', () => {
-          let res = JSON.parse(data)
+          response.on('end', () => {
+            let res = JSON.parse(data)
 
-          // console.log('HE', data, res)
-          
-          this.buffer.push(res.out+String.fromCharCode(0))
-          this._read()
-          callback()
-        })
+            // console.log('HE', data, res)
+
+            this.buffer.push(res.out + String.fromCharCode(0))
+            this._read()
+            callback()
+          })
+        },
+      )
+      .on('error', (err) => {
+        // console.log('HE', err)
+        this.buffer.push(`# ERROR: ${err}\n` + String.fromCharCode(0))
+        this._read()
+        callback()
       })
-        .on('error', (err) => {
-          // console.log('HE', err)
-          this.buffer.push(`# ERROR: ${err}\n`+String.fromCharCode(0))
-          this._read()
-          callback()
-        })
 
     req.write(postData)
     req.end()
@@ -169,30 +162,25 @@ class RequestStream extends Duplex {
   }
 }
 
-
 reconnect(spec)
 
-
 function reconnect(spec) {
-  operate(spec, function(result) {
-    if(result) {
-      if(false === result.connect && !spec.quit && !spec.first) {
-        setTimeout(()=>{
+  operate(spec, function (result) {
+    if (result) {
+      if (false === result.connect && !spec.quit && !spec.first) {
+        setTimeout(() => {
           spec.delay = Math.min(spec.delay * 1.1, 33333)
           reconnect(spec)
         }, spec.delay)
-      }
-      else if(result.err) {
+      } else if (result.err) {
         console.log('# CONNECTION ERROR:', result.err)
       }
-    }
-    else {
+    } else {
       console.log('# CONNECTION ERROR: no-result')
       process.exit(1)
     }
   })
 }
-
 
 function operate(spec, done) {
   state.connection.first = true
@@ -202,103 +190,92 @@ function operate(spec, done) {
   try {
     state.connection.sock = connect(spec)
     // console.log('SOCK', !!state.connection.sock)
-  }
-  catch(err) {
+  } catch (err) {
     // console.log('CA', err)
-    return done({err})
+    return done({ err })
   }
-  
-  state.connection.sock.on('connect', function() {
+
+  state.connection.sock.on('connect', function () {
     // console.log('SOCK connect')
-    
+
     state.connection.open = true
     delete state.connection.closed
 
     try {
-      historyFile = FS.openSync(historyPath,'a')
-    }
-    catch(e) {
+      historyFile = FS.openSync(historyPath, 'a')
+    } catch (e) {
       // Don't save history
     }
-    
+
     state.connection.sock.write('hello\n')
-    done({connect:true,event:'connect'})
+    done({ connect: true, event: 'connect' })
   })
 
-  state.connection.sock.on('error', function(err) {
+  state.connection.sock.on('error', function (err) {
     // console.log('CE', err)
-    if(state.connection.open) {
-      return done({event:'error',err})
+    if (state.connection.open) {
+      return done({ event: 'error', err })
     }
   })
 
-  state.connection.sock.on('close', function(err) {
+  state.connection.sock.on('close', function (err) {
     // console.log('CC', err)
-    if(state.connection.open) {
+    if (state.connection.open) {
       spec.log('\n\nConnection closed.')
     }
     state.connection.open = false
     state.connection.closed = true
 
     return done({
-      connect:false,
-      event:'close',
-      quit:!!state.connection.quit
+      connect: false,
+      event: 'close',
+      quit: !!state.connection.quit,
     })
   })
 
-  
   const responseChunks = []
-  
-  state.connection.sock.on('data', function(chunk) {
+
+  state.connection.sock.on('data', function (chunk) {
     const str = chunk.toString('ascii')
     // console.log('SOCK DATA', str)
-    
-    if (0 < str.length && 0 === str.charCodeAt(str.length-1) ) {
+
+    if (0 < str.length && 0 === str.charCodeAt(str.length - 1)) {
       responseChunks.push(str)
-      let received = responseChunks
-          .join('')
-      received = received.substring(0,received.length-1)
+      let received = responseChunks.join('')
+      received = received.substring(0, received.length - 1)
       responseChunks.length = 0
       spec.first = false
       handleResponse(received)
-    }
-    else if (0 < str.length) {
+    } else if (0 < str.length) {
       responseChunks.push(str)
     }
-  })    
-
+  })
 
   function handleResponse(received) {
-    if(state.connection.first) {
+    if (state.connection.first) {
       state.connection.first = false
 
-      let jsonstr = received
-          .trim()
-          .replace(/[\r\n]/g,'')
+      let jsonstr = received.trim().replace(/[\r\n]/g, '')
 
-      jsonstr = jsonstr.substring(1,jsonstr.length-1)
+      jsonstr = jsonstr.substring(1, jsonstr.length - 1)
 
       try {
         state.connection.remote = JSON.parse(jsonstr)
-      }
-      catch(err) {
-        if(received.startsWith('# ERROR')) {
+      } catch (err) {
+        if (received.startsWith('# ERROR')) {
           console.log(received)
-        }
-        else {
+        } else {
           console.log('# HELLO ERROR: ', err.message, 'hello:', received)
         }
 
         process.exit(1)
       }
-      
-      state.connection.prompt = state.connection.remote.id+'> ' 
-      
+
+      state.connection.prompt = state.connection.remote.id + '> '
+
       spec.log('Connected to Seneca:', state.connection.remote)
 
-
-      if(null == state.connection.readline) {
+      if (null == state.connection.readline) {
         state.connection.readline = Readline.createInterface({
           input: process.stdin,
           output: process.stdout,
@@ -308,23 +285,22 @@ function operate(spec, done) {
           historySize: Number.MAX_SAFE_INTEGER,
           prompt: state.connection.prompt,
         })
-      
+
         state.connection.readline
           .on('line', (line) => {
-            if('quit' === line) {
+            if ('quit' === line) {
               process.exit(0)
             }
 
-            if(null != historyFile) {
+            if (null != historyFile) {
               try {
-                FS.appendFileSync(historyFile,line+OS.EOL)
-              }
-              catch(e) {
+                FS.appendFileSync(historyFile, line + OS.EOL)
+              } catch (e) {
                 // Don't save history
               }
             }
-            
-            state.connection.sock.write(line+'\n')
+
+            state.connection.sock.write(line + '\n')
             // state.connection.readline.prompt()
           })
           .on('error', (err) => {
@@ -334,14 +310,12 @@ function operate(spec, done) {
           .on('close', () => {
             process.exit(0)
           })
-      }
-      else {
+      } else {
         state.connection.readline.setPrompt(state.connection.prompt)
       }
-      
+
       state.connection.readline.prompt()
-    }
-    else {
+    } else {
       received = received.replace(/\n+$/, '\n')
       spec.log(received)
 
@@ -350,42 +324,30 @@ function operate(spec, done) {
   }
 }
 
-
-
 // Create a duplex stream to operate the REPL
 function connect(spec) {
-
   let duplex = null
   let protocol = spec.url.protocol
 
-  if('telnet:' === protocol) {
+  if ('telnet:' === protocol) {
     duplex = Net.connect(spec.port, spec.host)
-  }
-  else if('http:' === protocol || 'https:' === protocol) {
+  } else if ('http:' === protocol || 'https:' === protocol) {
     duplex = makeHttpDuplex(spec)
+  } else {
+    throw new Error(
+      'unknown protocol: ' + protocol + ' for url: ' + spec.url.href,
+    )
   }
-  else {
-    throw new Error('unknown protocol: '+protocol+' for url: '+spec.url.href)
-  }
-  
+
   return duplex
 }
-
-
-
-
 
 // Assumes endpoint will call sys:repl,send:cmd
 // POST Body is: {cmd}
 function makeHttpDuplex(spec) {
   let reqstream = new RequestStream(spec)
-  setImmediate(()=>{
+  setImmediate(() => {
     reqstream.emit('connect')
   })
   return reqstream
 }
-
-
-
-
-

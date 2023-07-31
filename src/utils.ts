@@ -2,7 +2,6 @@
 
 import Util from 'node:util'
 
-
 function makeInspect(context: any, inspect_options: any) {
   return (x: any) => {
     if (context.plain) {
@@ -11,7 +10,6 @@ function makeInspect(context: any, inspect_options: any) {
     return Util.inspect(x, inspect_options)
   }
 }
-
 
 function parseOption(optpath: any, val: any) {
   optpath += '.'
@@ -33,8 +31,4 @@ function parseOption(optpath: any, val: any) {
   return out
 }
 
-
-export {
-  makeInspect,
-  parseOption,
-}
+export { makeInspect, parseOption }

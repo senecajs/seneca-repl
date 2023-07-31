@@ -21,68 +21,72 @@ const Seneca = require('seneca')
 
 const { Cmds } = Plugin
 
-
 describe('repl', function () {
   it('start', async function () {
     const si = Seneca().use('promisify').test()
 
-    await si
-      .use(Plugin)
-      .ready()
+    await si.use(Plugin).ready()
 
     await si.close()
   })
 
-  
   it('multiple', async function () {
     const si = Seneca().use('promisify').test()
-    
+
     await si
-      .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
-      .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 50505, depth: 1 })
+      .use(
+        { tag: 'a', init: Plugin },
+        { host: '0.0.0.0', port: 60606, depth: 1 },
+      )
+      .use(
+        { tag: 'b', init: Plugin },
+        { host: '0.0.0.0', port: 50505, depth: 1 },
+      )
       .ready()
 
     await si.close()
   })
 
-  
   it('fail-port', async function () {
-    const si =
-          Seneca({
-            timeout: 555,
-            error: {
-              identify: function identifyError(e) {
-                return (e instanceof Error) ||
-                  Object.prototype.toString.call(e)==='[object Error]'
-              },
-            },
-            legacy:false,debug:{undead:true},
-          })
-          // .test('print')
-          .quiet()
+    const si = Seneca({
+      timeout: 555,
+      error: {
+        identify: function identifyError(e) {
+          return (
+            e instanceof Error ||
+            Object.prototype.toString.call(e) === '[object Error]'
+          )
+        },
+      },
+      legacy: false,
+      debug: { undead: true },
+    })
+      // .test('print')
+      .quiet()
 
     try {
-      await new Promise((resolve, reject)=>{
-
-        si
-          .error((err)=>{
-            expect(err.code).toEqual('EADDRINUSE')
-            resolve()
-          })
+      await new Promise((resolve, reject) => {
+        si.error((err) => {
+          expect(err.code).toEqual('EADDRINUSE')
+          resolve()
+        })
           .use('promisify')
-          .use({tag:'a',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
-          .use({tag:'b',init:Plugin}, { host: '0.0.0.0', port: 60606, depth: 1 })
-        // .use('..$a', { host: '0.0.0.0', port: 60606, depth: 1 })
-        // .use('..$b', { host: '0.0.0.0', port: 60606, depth: 1 })
+          .use(
+            { tag: 'a', init: Plugin },
+            { host: '0.0.0.0', port: 60606, depth: 1 },
+          )
+          .use(
+            { tag: 'b', init: Plugin },
+            { host: '0.0.0.0', port: 60606, depth: 1 },
+          )
+          // .use('..$a', { host: '0.0.0.0', port: 60606, depth: 1 })
+          // .use('..$b', { host: '0.0.0.0', port: 60606, depth: 1 })
           .ready(reject)
       })
-    }
-    finally {
+    } finally {
       await si.close()
     }
   })
-
-  
 
   it('cmd_get', async function () {
     const si = await Seneca({ tag: 'foo' }).test()
@@ -94,11 +98,10 @@ describe('repl', function () {
       respond: (err, out) => {
         expect(err).toBeNull()
         expect(out).toEqual('foo')
-      }
+      },
     })
   })
 
-  
   it('cmd_depth', async function () {
     const si = await Seneca().test()
     // Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
@@ -110,15 +113,14 @@ describe('repl', function () {
       respond: (err, out) => {
         expect(err).toBeNull()
         expect(out).toEqual('Inspection depth set to 4')
-      }
+      },
     })
   })
 
-  
   it('happy', async function () {
     const si = await Seneca()
       .use('promisify')
-        .test()
+      .test()
       .use(Plugin, { port: 0 })
       .ready()
 
@@ -130,11 +132,11 @@ describe('repl', function () {
       let first = true
       const sock = Net.connect(addr.port, addr.host)
       sock
-        .on('error', (err)=>{
+        .on('error', (err) => {
           // console.log('QQQ bad', err)
           bad(err)
         })
-        .on('connect', ()=>{
+        .on('connect', () => {
           // console.log('QQQ connect')
           sock.write('hello\n')
         })
@@ -149,8 +151,7 @@ describe('repl', function () {
               first = false
               sock.write('this\n')
             }, 50 * tmx)
-          }
-          else {
+          } else {
             // console.log(result)
             expect(result).toContain('seneca')
             // sock.write('seneca.quit\n')
@@ -160,19 +161,17 @@ describe('repl', function () {
           }
         })
     }
-    
-    return new Promise((good, bad)=>{
-      concheck(()=>{
+
+    return new Promise((good, bad) => {
+      concheck(() => {
         // console.log('AAA')
-        concheck(()=>{
+        concheck(() => {
           // console.log('BBB')
           si.close(good)
         }, bad)
       }, bad)
     })
   })
-  
-
 
   it('cmd-msg', async function () {
     let si = await Seneca()
@@ -181,251 +180,239 @@ describe('repl', function () {
       .use(Plugin, { port: 0 })
       .ready()
 
-    let replres0 = await si.post(
-      'sys:repl,use:repl',
-      {id:'foo'}
-    )
+    let replres0 = await si.post('sys:repl,use:repl', { id: 'foo' })
 
     // console.log(replres0)
     expect(replres0.ok).toEqual(true)
-    
-    let res = await si.post('sys:repl,send:cmd',{
+
+    let res = await si.post('sys:repl,send:cmd', {
       id: 'foo',
-      cmd: 'sys:repl,echo:true,x:1\n'
+      cmd: 'sys:repl,echo:true,x:1\n',
     })
 
     // console.log('RES0',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 1, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 1, 'repl$': true, 'fatal$': false }\n",
     )
-    
-    res = await si.post('sys:repl,send:cmd',{
+
+    res = await si.post('sys:repl,send:cmd', {
       id: 'foo',
-      cmd: 'sys:repl,echo:true,x:2\n'
+      cmd: 'sys:repl,echo:true,x:2\n',
     })
 
     // console.log('RES1',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 2, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 2, 'repl$': true, 'fatal$': false }\n",
     )
 
-
-    let replres1 = await si.post(
-      'sys:repl,use:repl',
-      {id:'foo'}
-    )
+    let replres1 = await si.post('sys:repl,use:repl', { id: 'foo' })
 
     // console.log(replres1)
     expect(replres1.ok).toEqual(true)
-    
-    res = await si.post('sys:repl,send:cmd',{
+
+    res = await si.post('sys:repl,send:cmd', {
       id: 'foo',
-      cmd: 'sys:repl,echo:true,x:11\n'
+      cmd: 'sys:repl,echo:true,x:11\n',
     })
 
     // console.log('RES2',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 11, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 11, 'repl$': true, 'fatal$': false }\n",
     )
 
-    
-    res = await si.post('sys:repl,send:cmd',{
+    res = await si.post('sys:repl,send:cmd', {
       id: 'foo',
-      cmd: 'sys:repl,echo:true,x:22\n'
+      cmd: 'sys:repl,echo:true,x:22\n',
     })
 
     // console.log('RES3',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 22, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 22, 'repl$': true, 'fatal$': false }\n",
     )
 
-
-    let replres2 = await si.post(
-      'sys:repl,use:repl',
-      {id:'bar'}
-    )
+    let replres2 = await si.post('sys:repl,use:repl', { id: 'bar' })
 
     // console.log(replres1)
     expect(replres2.ok).toEqual(true)
-    
-    res = await si.post('sys:repl,send:cmd',{
+
+    res = await si.post('sys:repl,send:cmd', {
       id: 'bar',
-      cmd: 'sys:repl,echo:true,x:111\n'
+      cmd: 'sys:repl,echo:true,x:111\n',
     })
 
     // console.log('RES2',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 111, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 111, 'repl$': true, 'fatal$': false }\n",
     )
 
-    
-    res = await si.post('sys:repl,send:cmd',{
+    res = await si.post('sys:repl,send:cmd', {
       id: 'bar',
-      cmd: 'sys:repl,echo:true,x:222\n'
+      cmd: 'sys:repl,echo:true,x:222\n',
     })
 
     // console.log('RES3',res)
     expect(res.out).toEqual(
-      "{ sys: 'repl', echo: true, x: 222, 'repl$': true, 'fatal$': false }\n"
+      "{ sys: 'repl', echo: true, x: 222, 'repl$': true, 'fatal$': false }\n",
     )
 
-    
     await si.close()
   })
 
-    
-  it('interaction', async function () {
-    return new Promise((good, bad) => {
-      Seneca({legacy:false})
-      // .test()
-        .quiet()
-        .use('promisify')
-        .use('entity')
-        .use('entity-util', {when:{active:true}})
-        .add('a:1', function (msg, reply) {
-          reply({ x: msg.x })
-        })
-        .add('e:1', function (msg, reply) {
-          reply(new Error('eek'))
-        })
-        .use('..', { port: 0 })
+  it(
+    'interaction',
+    async function () {
+      return new Promise((good, bad) => {
+        Seneca({ legacy: false })
+          // .test()
+          .quiet()
+          .use('promisify')
+          .use('entity')
+          .use('entity-util', { when: { active: true } })
+          .add('a:1', function (msg, reply) {
+            reply({ x: msg.x })
+          })
+          .add('e:1', function (msg, reply) {
+            reply(new Error('eek'))
+          })
+          .use('..', { port: 0 })
 
-        .act('sys:repl,add:cmd', {
-          name: 'foo',
-          // action: function (cmd, argtext, context, options, respond) {
-          action: function (spec) {
-            return spec.respond(null, 'FOO:' + spec.argstr)
-          },
-        })
-      
-        .ready(function () {
-          let si = this
-          
-          var addr = this.export('repl/address')
-          var sock = Net.connect(addr.port, addr.host)
-
-          var result
-          sock.on('data', function (buffer) {
-            result += buffer.toString('ascii')
+          .act('sys:repl,add:cmd', {
+            name: 'foo',
+            // action: function (cmd, argtext, context, options, respond) {
+            action: function (spec) {
+              return spec.respond(null, 'FOO:' + spec.argstr)
+            },
           })
 
-          // NOTE: \n needed at end
-          var conversation = [
-            {
-              send: 'console.log(this)\n',
-              expect: '{',
-            },
+          .ready(function () {
+            let si = this
 
-            {
-              send: 'set foo.bar 1\nseneca.options().foo\n',
-              expect: 'bar',
-            },
-            {
-              send: 'set zed qazwsxedcrfv\n',
-              expect: '',
-            },
-            {
-              send: 'get zed\n',
-              expect: 'qazwsxedcrfv',
-            },
-            {
-              send: 'list\n',
-              expect: "{ cmd: 'close', role: 'seneca' }",
-            },
-            {
-              send: 'stats\n',
-              expect: 'start',
-            },
-            {
-              send: 'list\n',
-              expect: "role: 'seneca'",
-            },
-            {
-              send: 'a:1,x:2\n',
-              expect: 'x: 2',
-            },
-            {
-              send: 'last\n',
-              expect: 'x: 2',
-            },
-            {
-              send: 'alias a1x3 a:1,x:3\n',
-              // expect: 'seneca',
-              expect: '',
-            },
-            {
-              send: 'a1x3\n',
-              expect: 'x: 3',
-            },
-            {
-              send: 'e:1\n',
-              expect: 'eek',
-            },
-            {
-              send: 'foo bar\n',
-              expect: 'FOO: bar',
-            },
-            {
-              send: 'a=1\n',
-              expect: '1',
-            },
-            {
-              send: 'a:`$.a`,x:2\n',
-              expect: 'x: 2',
-            },
-            {
-              send: '1+1\n',
-              expect: '2',
-            },
-            {
-              send: 'save$ foo x:1\n',
-              expect: /Entity.*x: 1/s
-            },
-            {
-              send: 'save$ foo x:2\n',
-              expect: /Entity.*x: 2/s
-            },
-            {
-              send: 'list$ foo\n',
-              expect: /Entity.*x: 1.*x: 2/s,
-            },
-          ]
+            var addr = this.export('repl/address')
+            var sock = Net.connect(addr.port, addr.host)
 
-          // console.log('QUIT')
-          // sock.write('seneca.quit()\n')
+            var result
+            sock.on('data', function (buffer) {
+              result += buffer.toString('ascii')
+            })
 
-          function nextStep() {
-            var step = conversation.shift()
-            if (!step) {
-              // return good()
-              return si.close(good)
+            // NOTE: \n needed at end
+            var conversation = [
+              {
+                send: 'console.log(this)\n',
+                expect: '{',
+              },
+
+              {
+                send: 'set foo.bar 1\nseneca.options().foo\n',
+                expect: 'bar',
+              },
+              {
+                send: 'set zed qazwsxedcrfv\n',
+                expect: '',
+              },
+              {
+                send: 'get zed\n',
+                expect: 'qazwsxedcrfv',
+              },
+              {
+                send: 'list\n',
+                expect: "{ cmd: 'close', role: 'seneca' }",
+              },
+              {
+                send: 'stats\n',
+                expect: 'start',
+              },
+              {
+                send: 'list\n',
+                expect: "role: 'seneca'",
+              },
+              {
+                send: 'a:1,x:2\n',
+                expect: 'x: 2',
+              },
+              {
+                send: 'last\n',
+                expect: 'x: 2',
+              },
+              {
+                send: 'alias a1x3 a:1,x:3\n',
+                // expect: 'seneca',
+                expect: '',
+              },
+              {
+                send: 'a1x3\n',
+                expect: 'x: 3',
+              },
+              {
+                send: 'e:1\n',
+                expect: 'eek',
+              },
+              {
+                send: 'foo bar\n',
+                expect: 'FOO: bar',
+              },
+              {
+                send: 'a=1\n',
+                expect: '1',
+              },
+              {
+                send: 'a:`$.a`,x:2\n',
+                expect: 'x: 2',
+              },
+              {
+                send: '1+1\n',
+                expect: '2',
+              },
+              {
+                send: 'save$ foo x:1\n',
+                expect: /Entity.*x: 1/s,
+              },
+              {
+                send: 'save$ foo x:2\n',
+                expect: /Entity.*x: 2/s,
+              },
+              {
+                send: 'list$ foo\n',
+                expect: /Entity.*x: 1.*x: 2/s,
+              },
+            ]
+
+            // console.log('QUIT')
+            // sock.write('seneca.quit()\n')
+
+            function nextStep() {
+              var step = conversation.shift()
+              if (!step) {
+                // return good()
+                return si.close(good)
+              }
+
+              result = ''
+
+              // console.log('SEND: '+step.send)
+              sock.write(step.send)
+              setTimeout(function () {
+                // console.log('RESULT: '+result)
+                // console.log('EXPECT: '+step.expect)
+                if (null != step.expect) {
+                  if ('string' === typeof step.expect) {
+                    expect(result).toContain(step.expect)
+                  } else if (step.expect instanceof RegExp) {
+                    expect(result).toMatch(step.expect)
+                  }
+                }
+                nextStep()
+              }, 222 * tmx)
             }
 
-            result = ''
-
-            // console.log('SEND: '+step.send)
-            sock.write(step.send)
+            sock.write('hello\n')
             setTimeout(function () {
-              // console.log('RESULT: '+result)
-              // console.log('EXPECT: '+step.expect)
-              if (null != step.expect) {
-                if('string' === typeof step.expect) {
-                  expect(result).toContain(step.expect)
-                }
-                else if(step.expect instanceof RegExp) {
-                  expect(result).toMatch(step.expect)
-                }
-              }
+              expect(result).toContain('version')
               nextStep()
             }, 222 * tmx)
-          }
-
-          sock.write('hello\n')
-          setTimeout(function () {
-            expect(result).toContain('version')
-            nextStep()
-          }, 222 * tmx)
-        })
-    })
-  }, 9999 * tmx)
+          })
+      })
+    },
+    9999 * tmx,
+  )
 })

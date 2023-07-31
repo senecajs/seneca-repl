@@ -4,7 +4,6 @@
 
 // NOTE: vorpal is not used server-side to keep things lean
 
-
 import { PassThrough } from 'node:stream'
 
 import Net, { Server } from 'node:net'
@@ -16,13 +15,11 @@ import Hoek from '@hapi/hoek'
 
 const Inks = require('inks')
 
-
 import type { Cmd } from './types'
 
 import { Cmds } from './cmds'
 
 import { makeInspect } from './utils'
-
 
 const intern = (repl.intern = make_intern())
 
@@ -32,7 +29,6 @@ for (let cmd of Object.values(Cmds)) {
   default_cmds[cmd.name.toLowerCase().replace(/cmd$/, '')] = cmd
 }
 
-
 function repl(this: any, options: any) {
   let seneca = this
   // let mark = Math.random()
@@ -40,8 +36,11 @@ function repl(this: any, options: any) {
   let server: any = null
   let export_address: Record<string, any> = {}
   let replMap: Record<string, any> = {}
-  let cmdMap: Record<string, any> = Object.assign({}, default_cmds, options.cmds)
-
+  let cmdMap: Record<string, any> = Object.assign(
+    {},
+    default_cmds,
+    options.cmds,
+  )
 
   seneca.add('sys:repl,use:repl', use_repl)
   seneca.add('sys:repl,send:cmd', send_cmd)
@@ -51,10 +50,8 @@ function repl(this: any, options: any) {
 
   seneca.message('role:seneca,cmd:close', cmd_close)
 
-
   seneca.prepare(async function () {
     if (options.listen) {
-
       server = Net.createServer(function (socket) {
         socket.on('error', function (err) {
           seneca.log.error('repl-socket', err)
@@ -99,7 +96,6 @@ function repl(this: any, options: any) {
     }
   })
 
-
   async function cmd_close(this: any, msg: any) {
     const seneca = this
 
@@ -118,10 +114,9 @@ function repl(this: any, options: any) {
     return seneca.prior(msg)
   }
 
-
   function use_repl(this: any, msg: any, reply: any) {
     let seneca = this
-    let replID = msg.id || (options.host + '~' + options.port)
+    let replID = msg.id || options.host + '~' + options.port
 
     let replInst: ReplInstance = replMap[replID]
 
@@ -130,7 +125,7 @@ function repl(this: any, options: any) {
     if (replInst && 'open' === replInst.status) {
       return reply({
         ok: true,
-        repl: replInst
+        repl: replInst,
       })
     }
 
@@ -154,30 +149,28 @@ function repl(this: any, options: any) {
             delete replMap[replID]
           }, 1111)
         }
-      }
+      },
     })
 
     replInst.update('open')
 
     return reply({
       ok: true,
-      repl: replInst
+      repl: replInst,
     })
   }
-
 
   function send_cmd(this: any, msg: any, reply: any) {
     let seneca = this
 
     // lookup repl by id, using steams to submit cmd and send back response
 
-    let replID = msg.id || (options.host + ':' + options.port)
+    let replID = msg.id || options.host + ':' + options.port
     let replInst = replMap[replID]
 
     if (null == replInst) {
       seneca.fail('unknown-repl', { id: replID })
-    }
-    else if ('open' !== replInst.status) {
+    } else if ('open' !== replInst.status) {
       seneca.fail('invalid-status', { id: replID, status: replInst.status })
     }
 
@@ -203,7 +196,6 @@ function repl(this: any, options: any) {
     replInst.input.write(cmd)
   }
 
-
   function add_cmd(this: any, msg: any, reply: any) {
     let name = msg.name
     let action = msg.action
@@ -218,7 +210,6 @@ function repl(this: any, options: any) {
   }
   add_cmd.desc = 'Add a REPL command dynamically'
 
-
   return {
     name: 'repl',
     exportmap: {
@@ -226,7 +217,6 @@ function repl(this: any, options: any) {
     },
   }
 }
-
 
 /*
 function updateStatus(replInst: any, newStatus: string) {
@@ -238,7 +228,6 @@ function updateStatus(replInst: any, newStatus: string) {
   })
 }
 */
-
 
 function make_intern() {
   return {
@@ -271,20 +260,20 @@ function make_intern() {
         let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
-          intern.fmt_index(context.act_index) +
-          ': ' +
-          context.inspekt(context.seneca.util.clean(args)) +
-          ' # ' +
-          actid +
-          ' ' +
-          actdef.pattern +
-          ' ' +
-          actdef.id +
-          ' ' +
-          actdef.action +
-          ' ' +
-          (actdef.callpoint ? actdef.callpoint : '') +
-          '\n'
+            intern.fmt_index(context.act_index) +
+            ': ' +
+            context.inspekt(context.seneca.util.clean(args)) +
+            ' # ' +
+            actid +
+            ' ' +
+            actdef.pattern +
+            ' ' +
+            actdef.id +
+            ' ' +
+            actdef.action +
+            ' ' +
+            (actdef.callpoint ? actdef.callpoint : '') +
+            '\n',
         )
         context.act_index_map[actid] = context.act_index
         context.act_index++
@@ -304,7 +293,7 @@ function make_intern() {
 
         let cur_index = context.act_index_map[actid]
         context.socket.write(
-          'OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n'
+          'OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n',
         )
       }
     },
@@ -318,14 +307,13 @@ function make_intern() {
         if (actid) {
           let cur_index = context.act_index_map[actid]
           context.socket.write(
-            'ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n'
+            'ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n',
           )
         }
       }
     },
   }
 }
-
 
 repl.defaults = {
   listen: true,
@@ -348,10 +336,7 @@ repl.defaults = {
   }),
 }
 
-
 repl.Cmds = Cmds
-
-
 
 class ReplInstance {
   id: string
@@ -372,12 +357,12 @@ class ReplInstance {
     this.server = spec.server
     this.event = spec.event
 
-    const options = this.options = spec.options
-    const input = this.input = spec.input
-    const output = this.output = spec.output
-    const seneca = this.seneca = spec.seneca
+    const options = (this.options = spec.options)
+    const input = (this.input = spec.input)
+    const output = (this.output = spec.output)
+    const seneca = (this.seneca = spec.seneca)
 
-    const repl = this.repl = Repl.start({
+    const repl = (this.repl = Repl.start({
       // prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
       prompt: '',
       input,
@@ -385,7 +370,7 @@ class ReplInstance {
       terminal: false,
       useGlobal: false,
       eval: this.evaluate.bind(this),
-    })
+    }))
 
     repl.on('exit', () => {
       this.update('closed')
@@ -398,7 +383,6 @@ class ReplInstance {
       seneca.log.error('repl', err)
       this.event('error')
     })
-
 
     Object.assign(repl.context, {
       // NOTE: don't trigger funnies with a .inspect property
@@ -428,11 +412,9 @@ class ReplInstance {
     seneca.on('log', intern.make_log_handler(repl.context))
   }
 
-
   update(status: string) {
     this.status = status
   }
-
 
   evaluate(cmdtext: any, context: any, filename: any, origRespond: any) {
     // console.log('EVAL', cmdtext)
@@ -449,15 +431,13 @@ class ReplInstance {
       // output.write('Z')
     }
 
-
     let cmd_history = context.history
 
     cmdtext = cmdtext.trim()
 
     if ('last' === cmdtext && 0 < cmd_history.length) {
       cmdtext = cmd_history[cmd_history.length - 1]
-    }
-    else {
+    } else {
       cmd_history.push(cmdtext)
     }
 
@@ -470,8 +450,7 @@ class ReplInstance {
     let m = cmdtext.match(/^(\S+)/)
     let cmd = m && m[1]
 
-    let argstr =
-      'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
+    let argstr = 'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
 
     // NOTE: alias can also apply just to command
     if (alias[cmd]) {
@@ -505,7 +484,7 @@ class ReplInstance {
         let args = seneca.util.Jsonic(injected_msg)
 
         let notmsg =
-          (null == args || Array.isArray(args) || 'object' !== typeof args)
+          null == args || Array.isArray(args) || 'object' !== typeof args
 
         // console.log('ARGS', args, notmsg)
 
@@ -522,8 +501,7 @@ class ReplInstance {
             let ma = m[1].split(/\s*=\s*/)
             if (2 === ma.length) {
               context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
-            }
-            else {
+            } else {
               context[m[1]] = out
             }
           }
@@ -537,9 +515,7 @@ class ReplInstance {
             respond(null, out)
             // output.write(out + '\n')
             // output.write(new Uint8Array([0]))
-
-          }
-          else if (err) {
+          } else if (err) {
             // output.write(context.inspekt(err) + '\n')
             respond(err)
           }
@@ -568,8 +544,7 @@ class ReplInstance {
 
         result = result === seneca ? null : result
         return respond(null, result)
-      }
-      catch (e: any) {
+      } catch (e: any) {
         if ('SyntaxError' === e.name && e.message.startsWith('await')) {
           let wrapper = '(async () => { return (' + cmdtext + ') })()'
 
@@ -591,12 +566,10 @@ class ReplInstance {
               .catch((e: any) => {
                 return respond(e)
               })
-          }
-          catch (e: any) {
+          } catch (e: any) {
             return respond(e)
           }
-        }
-        else {
+        } else {
           // return respond(e.message)
           return respond(e)
         }
@@ -604,21 +577,18 @@ class ReplInstance {
     }
   }
 
-
   async destroy(this: any) {
     const seneca = this.seneca
 
     try {
       this.input?.destroy && this.input.destroy()
-    }
-    catch (err) {
+    } catch (err) {
       seneca.log.error('repl-close-input', err, { id: this.id })
     }
 
     try {
       this.output?.destroy && this.output.destroy()
-    }
-    catch (err) {
+    } catch (err) {
       seneca.log.error('repl-close-output', err, { id: this.id })
     }
 

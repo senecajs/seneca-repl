@@ -6,4 +6,4 @@ type CmdSpec = {
     respond: Function;
 };
 type Cmd = (spec: CmdSpec) => void;
-export type { CmdSpec, Cmd, };
+export type { CmdSpec, Cmd };

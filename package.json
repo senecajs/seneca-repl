@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "5.1.0",
+  "version": "6.0.0",
   "main": "dist/repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -22,13 +22,13 @@
     "test": "jest --coverage",
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
-    "prettier": "prettier --write --no-semi --single-quote *.js test/*.js",
+    "prettier": "prettier --write --no-semi --single-quote bin/*.js src/*.ts test/*.js",
     "doc": "seneca-doc",
     "reset": "npm run clean && npm i && npm run build && npm test",
     "clean": "rm -rf dist node_modules package-lock.json yarn.lock",
     "repo-tag": "REPO_VERSION=`node -e \"console.log(require('./package').version)\"` && echo TAG: v$REPO_VERSION && git commit -a -m v$REPO_VERSION && git push && git tag v$REPO_VERSION && git push --tags;",
     "repo-publish": "npm run clean && npm i --registry=http://registry.npmjs.org && npm run repo-publish-quick",
-    "repo-publish-quick": "npm run prettier && npm test && npm run repo-tag && npm publish --access public --registry=https://registry.npmjs.org"
+    "repo-publish-quick": "npm run prettier && npm run build && npm test && npm run repo-tag && npm publish --access public --registry=https://registry.npmjs.org"
   },
   "keywords": [
     "seneca",

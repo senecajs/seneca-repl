@@ -1,6 +1,5 @@
 /* Copyright © 2023 Richard Rodger and other contributors, MIT License. */
 
-
 type CmdSpec = {
   name: string
   argstr: string
@@ -11,9 +10,4 @@ type CmdSpec = {
 
 type Cmd = (spec: CmdSpec) => void
 
-
-
-export type {
-  CmdSpec,
-  Cmd,
-}
+export type { CmdSpec, Cmd }

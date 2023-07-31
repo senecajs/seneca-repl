@@ -2,18 +2,9 @@
 
 import Hoek from '@hapi/hoek'
 
+import type { CmdSpec, Cmd } from './types'
 
-import type {
-  CmdSpec,
-  Cmd,
-} from './types'
-
-
-import {
-  makeInspect,
-  parseOption,
-} from './utils'
-
+import { makeInspect, parseOption } from './utils'
 
 // NOTE: The function name prefix (lowercased) is the command name.
 
@@ -23,11 +14,10 @@ const HelloCmd: Cmd = (spec: CmdSpec) => {
     version: context.seneca.version,
     id: context.seneca.id,
     when: Date.now(),
-    address: context.input?.address?.call(context.input)
+    address: context.input?.address?.call(context.input),
   }
   return respond(null, JSON.stringify(out))
 }
-
 
 const GetCmd: Cmd = (spec: CmdSpec) => {
   const { argstr, context, respond } = spec
@@ -37,7 +27,6 @@ const GetCmd: Cmd = (spec: CmdSpec) => {
   let out = Hoek.reach(sopts, option_path)
   return respond(null, out)
 }
-
 
 const DepthCmd: Cmd = (spec: CmdSpec) => {
   const { argstr, context, options, respond } = spec
@@ -57,7 +46,6 @@ const PlainCmd: Cmd = (spec: CmdSpec) => {
   return respond()
 }
 
-
 /*
 const QuitCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
@@ -65,20 +53,17 @@ const QuitCmd: Cmd = (spec: CmdSpec) => {
 }
 */
 
-
 const ListCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
   let narrow = context.seneca.util.Jsonic(argstr)
   respond(null, context.seneca.list(narrow))
 }
 
-
 const FindCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
   let narrow = context.seneca.util.Jsonic(argstr)
   respond(null, context.seneca.find(narrow))
 }
-
 
 const PriorCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -87,7 +72,7 @@ const PriorCmd: Cmd = (spec: CmdSpec) => {
       id: actdef.id,
       plugin: actdef.plugin_fullname,
       pattern: actdef.pattern,
-      callpoint: undefined
+      callpoint: undefined,
     }
     if (actdef.callpoint) {
       d.callpoint = actdef.callpoint
@@ -106,12 +91,10 @@ const PriorCmd: Cmd = (spec: CmdSpec) => {
   respond(null, priors)
 }
 
-
 const HistoryCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
   return respond(null, context.history.join('\n'))
 }
-
 
 const LogCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -130,7 +113,6 @@ const LogCmd: Cmd = (spec: CmdSpec) => {
   return respond()
 }
 
-
 const SetCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, options, respond } = spec
   let m = argstr.match(/^\s*(\S+)\s+(\S+)/)
@@ -138,12 +120,15 @@ const SetCmd: Cmd = (spec: CmdSpec) => {
   if (m) {
     let setopt: any = parseOption(
       m[1],
-      context.seneca.util.Jsonic('$:' + m[2]).$
+      context.seneca.util.Jsonic('$:' + m[2]).$,
     )
     context.seneca.options(setopt)
 
     if (setopt.repl) {
-      Object.assign(options, context.seneca.util.deepextend(options, setopt.repl))
+      Object.assign(
+        options,
+        context.seneca.util.deepextend(options, setopt.repl),
+      )
     }
 
     return respond()
@@ -151,7 +136,6 @@ const SetCmd: Cmd = (spec: CmdSpec) => {
     return respond('ERROR: expected set <path> <value>')
   }
 }
-
 
 const AliasCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -165,19 +149,16 @@ const AliasCmd: Cmd = (spec: CmdSpec) => {
   }
 }
 
-
 const TraceCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
   context.act_trace = !context.act_trace
   return respond()
 }
 
-
 const HelpCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
   return respond(null, context.cmdMap)
 }
-
 
 const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/
 
@@ -198,12 +179,10 @@ const List$Cmd: Cmd = (spec: CmdSpec) => {
       }
       return respond(null, out)
     })
-  }
-  else {
+  } else {
     return respond('ERROR: expected: list$ [[zone/]base/]name [query]')
   }
 }
-
 
 const Load$Cmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -222,12 +201,10 @@ const Load$Cmd: Cmd = (spec: CmdSpec) => {
       }
       return respond(null, out)
     })
-  }
-  else {
+  } else {
     return respond('ERROR: expected: load$ [[zone/]base/]name [query]')
   }
 }
-
 
 const Save$Cmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -246,12 +223,10 @@ const Save$Cmd: Cmd = (spec: CmdSpec) => {
       }
       return respond(null, out)
     })
-  }
-  else {
+  } else {
     return respond('ERROR: expected: save$ [[zone/]base/]name [query]')
   }
 }
-
 
 const Remove$Cmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -270,12 +245,10 @@ const Remove$Cmd: Cmd = (spec: CmdSpec) => {
       }
       return respond(null, out)
     })
-  }
-  else {
+  } else {
     return respond('ERROR: expected: remove$ [[zone/]base/]name [query]')
   }
 }
-
 
 const Entity$Cmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
@@ -290,13 +263,10 @@ const Entity$Cmd: Cmd = (spec: CmdSpec) => {
 
     let ent = seneca.entity(canon)
     return respond(null, ent)
-  }
-  else {
+  } else {
     return respond('ERROR: expected: entity$ [[zone/]base/]name [query]')
   }
 }
-
-
 
 const Cmds: Record<string, Cmd> = {
   HelloCmd,
@@ -321,6 +291,4 @@ const Cmds: Record<string, Cmd> = {
   Entity$Cmd,
 }
 
-export {
-  Cmds
-}
+export { Cmds }

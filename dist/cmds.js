@@ -15,7 +15,7 @@ const HelloCmd = (spec) => {
         version: context.seneca.version,
         id: context.seneca.id,
         when: Date.now(),
-        address: (_b = (_a = context.input) === null || _a === void 0 ? void 0 : _a.address) === null || _b === void 0 ? void 0 : _b.call(context.input)
+        address: (_b = (_a = context.input) === null || _a === void 0 ? void 0 : _a.address) === null || _b === void 0 ? void 0 : _b.call(context.input),
     };
     return respond(null, JSON.stringify(out));
 };
@@ -64,7 +64,7 @@ const PriorCmd = (spec) => {
             id: actdef.id,
             plugin: actdef.plugin_fullname,
             pattern: actdef.pattern,
-            callpoint: undefined
+            callpoint: undefined,
         };
         if (actdef.callpoint) {
             d.callpoint = actdef.callpoint;

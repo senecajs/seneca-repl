@@ -84,13 +84,13 @@ function repl(options) {
     }
     function use_repl(msg, reply) {
         let seneca = this;
-        let replID = msg.id || (options.host + '~' + options.port);
+        let replID = msg.id || options.host + '~' + options.port;
         let replInst = replMap[replID];
         // console.log('UR', replInst)
         if (replInst && 'open' === replInst.status) {
             return reply({
                 ok: true,
-                repl: replInst
+                repl: replInst,
             });
         }
         let server = msg.server;
@@ -111,18 +111,18 @@ function repl(options) {
                         delete replMap[replID];
                     }, 1111);
                 }
-            }
+            },
         });
         replInst.update('open');
         return reply({
             ok: true,
-            repl: replInst
+            repl: replInst,
         });
     }
     function send_cmd(msg, reply) {
         let seneca = this;
         // lookup repl by id, using steams to submit cmd and send back response
-        let replID = msg.id || (options.host + ':' + options.port);
+        let replID = msg.id || options.host + ':' + options.port;
         let replInst = replMap[replID];
         if (null == replInst) {
             seneca.fail('unknown-repl', { id: replID });
@@ -270,11 +270,11 @@ class ReplInstance {
         this.cmdMap = spec.cmdMap;
         this.server = spec.server;
         this.event = spec.event;
-        const options = this.options = spec.options;
-        const input = this.input = spec.input;
-        const output = this.output = spec.output;
-        const seneca = this.seneca = spec.seneca;
-        const repl = this.repl = node_repl_1.default.start({
+        const options = (this.options = spec.options);
+        const input = (this.input = spec.input);
+        const output = (this.output = spec.output);
+        const seneca = (this.seneca = spec.seneca);
+        const repl = (this.repl = node_repl_1.default.start({
             // prompt: 'seneca ' + seneca.version + ' ' + seneca.id + '> ',
             prompt: '',
             input,
@@ -282,7 +282,7 @@ class ReplInstance {
             terminal: false,
             useGlobal: false,
             eval: this.evaluate.bind(this),
-        });
+        }));
         repl.on('exit', () => {
             this.update('closed');
             input.end();
@@ -373,7 +373,7 @@ class ReplInstance {
                 }
                 let injected_msg = Inks(msg, context);
                 let args = seneca.util.Jsonic(injected_msg);
-                let notmsg = (null == args || Array.isArray(args) || 'object' !== typeof args);
+                let notmsg = null == args || Array.isArray(args) || 'object' !== typeof args;
                 // console.log('ARGS', args, notmsg)
                 if (notmsg) {
                     return false;
