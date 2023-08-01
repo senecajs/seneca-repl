@@ -67,7 +67,7 @@ function web(seneca) {
   const server = Http.createServer((req, res) => {
     // console.log(req)
 
-    if (req.method === 'POST' && '/seneca-repl' === req.url) {
+    if (req.method === 'POST' && req.url.startsWith('/seneca-repl')) {
       let body = ''
 
       req.setEncoding('utf8')
@@ -82,10 +82,12 @@ function web(seneca) {
           let cmd = data.cmd
           cmd = cmd.endsWith('\n') ? cmd : cmd + '\n'
 
+          let id = data.id || 'web'
+
           const msg = {
             sys: 'repl',
             send: 'cmd',
-            id: 'web',
+            id,
             cmd,
           }
 

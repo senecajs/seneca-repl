@@ -41,20 +41,27 @@ const PlainCmd = (spec) => {
     context.plain = !context.plain;
     return respond();
 };
-/*
-const QuitCmd: Cmd = (spec: CmdSpec) => {
-  const { context, respond } = spec
-  respond()
-}
-*/
 const ListCmd = (spec) => {
     const { context, argstr, respond } = spec;
+    let parts = argstr.trim().split(/\s+/);
+    // console.log('PARTS', parts)
+    if (0 < parts.length) {
+        if (parts[0].match(/^plugins?$/)) {
+            return respond(null, Object.keys(context.seneca.list_plugins()));
+        }
+    }
     let narrow = context.seneca.util.Jsonic(argstr);
-    respond(null, context.seneca.list(narrow));
+    return respond(null, context.seneca.list(narrow));
 };
 const FindCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let narrow = context.seneca.util.Jsonic(argstr);
+    if ('string' === typeof narrow) {
+        // console.log('FP', narrow)
+        let plugin = context.seneca.find_plugin(narrow);
+        // console.log('FP p', plugin)
+        return respond(null, plugin);
+    }
     respond(null, context.seneca.find(narrow));
 };
 const PriorCmd = (spec) => {

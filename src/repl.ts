@@ -176,6 +176,9 @@ function repl(this: any, options: any) {
     }
 
     let cmd = msg.cmd
+    if (!cmd.endsWith('\n')) {
+      cmd += '\n'
+    }
 
     let out: any = []
 
@@ -185,7 +188,7 @@ function repl(this: any, options: any) {
     let listener = (chunk: Buffer) => {
       if (0 === chunk[0]) {
         replInst.output.removeListener('data', listener)
-        reply({ out: out.join('') })
+        reply({ ok: true, out: out.join('') })
       }
 
       out.push(chunk.toString())
@@ -329,7 +332,7 @@ repl.defaults = {
     'stats/full': 'seneca.stats({summary:false})',
 
     // TODO: there should be a seneca.tree()
-    tree: 'seneca.root.private$.actrouter',
+    // tree: 'seneca.root.private$.actrouter',
   }),
   inspect: Open({}),
   cmds: Open({

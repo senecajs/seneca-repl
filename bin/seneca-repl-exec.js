@@ -23,7 +23,7 @@ let replAddr = process.argv[2]
 let portArg = process.argv[3]
 
 let url = 'telnet:' + host + ':' + port
-let scope = 'default'
+let id = 'default'
 
 // NOTE: backwards compatibility: seneca-repl localhost 30303
 
@@ -50,8 +50,8 @@ try {
   port = '' === url.port ? port : parseInt(url.port)
 
   // NOTE: use URL params for additional args
-  scope = url.searchParams.get('scope')
-  scope = null == scope || '' === scope ? 'default' : scope
+  id = url.searchParams.get('id')
+  id = null == id || '' === id ? 'web' : id
 } catch (e) {
   console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
@@ -72,7 +72,9 @@ if (FS.existsSync(historyPath)) {
   const lines = FS.readFileSync(historyPath).toString()
   lines
     .split(/[\r\n]+/)
+    .reverse()
     .map((line) => (null != line && '' != line ? history.push(line) : null))
+  console.log('H', history)
 }
 
 let historyFile = null
@@ -82,8 +84,8 @@ let spec = {
   url,
   host,
   port,
-  scope,
-  delay: 1111,
+  id,
+  delay: 31111,
   first: true,
 }
 
@@ -104,8 +106,11 @@ class RequestStream extends Duplex {
     const httpClient = url.href.startsWith('https://') ? Https : Http
 
     const postData = JSON.stringify({
+      id: this.spec.id,
       cmd,
     })
+
+    // console.log('PD', postData)
 
     let req = httpClient
       .request(
@@ -125,11 +130,19 @@ class RequestStream extends Duplex {
           })
 
           response.on('end', () => {
+            // console.log('DATA', data)
             let res = JSON.parse(data)
+            // console.log('res', res)
 
             // console.log('HE', data, res)
+            if (res.ok) {
+              this.buffer.push(res.out + String.fromCharCode(0))
+            } else {
+              this.buffer.push(
+                (res.err || '# ERROR: unknown') + String.fromCharCode(0),
+              )
+            }
 
-            this.buffer.push(res.out + String.fromCharCode(0))
             this.processing = false
             this._read()
             callback()
@@ -157,10 +170,6 @@ class RequestStream extends Duplex {
       if (!this.push(chunk)) {
         break
       }
-    }
-
-    if (this.buffer.length === 0) {
-      this.push(null)
     }
   }
 }
@@ -195,7 +204,7 @@ function operate(spec, done) {
     // console.log('SOCK', !!state.connection.sock)
   } catch (err) {
     // console.log('CA', err)
-    return done({ err })
+    return done && done({ err })
   }
 
   state.connection.sock.on('connect', function () {
@@ -211,13 +220,13 @@ function operate(spec, done) {
     }
 
     state.connection.sock.write('hello\n')
-    done({ connect: true, event: 'connect' })
+    done && done({ connect: true, event: 'connect' })
   })
 
   state.connection.sock.on('error', function (err) {
     // console.log('CE', err)
     if (state.connection.open) {
-      return done({ event: 'error', err })
+      return done && done({ event: 'error', err })
     }
   })
 
@@ -229,11 +238,14 @@ function operate(spec, done) {
     state.connection.open = false
     state.connection.closed = true
 
-    return done({
-      connect: false,
-      event: 'close',
-      quit: !!state.connection.quit,
-    })
+    return (
+      done &&
+      done({
+        connect: false,
+        event: 'close',
+        quit: !!state.connection.quit,
+      })
+    )
   })
 
   const responseChunks = []
@@ -256,6 +268,7 @@ function operate(spec, done) {
 
   function handleResponse(received) {
     if (state.connection.first) {
+      let first = true
       state.connection.first = false
 
       let jsonstr = received.trim().replace(/[\r\n]/g, '')
@@ -265,7 +278,10 @@ function operate(spec, done) {
       try {
         state.connection.remote = JSON.parse(jsonstr)
       } catch (err) {
-        if (received.startsWith('# ERROR')) {
+        if (received.startsWith('# ERROR') || first) {
+          received = received.startsWith('# ERROR')
+            ? received
+            : '# ERROR: ' + received
           console.log(received)
         } else {
           console.log('# HELLO ERROR: ', err.message, 'hello:', received)
@@ -291,7 +307,15 @@ function operate(spec, done) {
 
         state.connection.readline
           .on('line', (line) => {
-            if ('quit' === line) {
+            // console.log('LINE', line)
+
+            if (state.connection.closed) {
+              return setImmediate(() => {
+                operate(spec)
+              })
+            }
+
+            if ('quit' === line || 'exit' === line) {
               process.exit(0)
             }
 

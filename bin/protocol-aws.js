@@ -8,12 +8,14 @@ class LambdaInvokeStream extends Duplex {
     super(options)
 
     let region = def.region || 'us-east-1'
+    let id = def.id || 'invoke'
     let name = def.name
 
     this.lambdaClient = new LambdaClient({ region })
     this.lambdaFunctionName = name
     this.buffer = []
     this.processing = false
+    this.id = id
   }
 
   _write(chunk, encoding, done) {
@@ -31,7 +33,7 @@ class LambdaInvokeStream extends Duplex {
         body: {
           sys: 'repl',
           send: 'cmd',
-          id: 'invoke',
+          id: this.id,
           cmd,
         },
       }),
@@ -52,7 +54,18 @@ class LambdaInvokeStream extends Duplex {
           const body = JSON.parse(res.body)
           // console.log('body', body)
 
-          this.buffer.push(body.out + String.fromCharCode(0))
+          let out = ''
+
+          if (500 === res.statusCode) {
+            out =
+              '# ERROR: ' + body.error$
+                ? body.error$.code + ' ' + (body.error$?.message || '')
+                : 'unknown'
+          } else {
+            out = body.out
+          }
+
+          this.buffer.push(out + String.fromCharCode(0))
         } else {
           this.buffer.push(
             '# ERROR: ' + JSON.stringify(data) + String.fromCharCode(0),
@@ -64,7 +77,7 @@ class LambdaInvokeStream extends Duplex {
         done()
       },
       (err) => {
-        // console.log('err', err)
+        console.log('err', err)
         this.buffer.push(
           `# ERROR invoking Lambda function: ${err}` + String.fromCharCode(0),
         )
@@ -105,11 +118,12 @@ module.exports = function makeProtocol(spec) {
     const name = spec.url.pathname.substring(1).split('/')[0]
 
     const region = spec.url.searchParams.get('region')
+    const id = spec.url.searchParams.get('id')
 
     duplex = new LambdaInvokeStream({
       name,
       region,
-      // region: 'eu-west-1'
+      id,
     })
 
     setImmediate(() => {

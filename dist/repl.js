@@ -132,13 +132,16 @@ function repl(options) {
             seneca.fail('invalid-status', { id: replID, status: replInst.status });
         }
         let cmd = msg.cmd;
+        if (!cmd.endsWith('\n')) {
+            cmd += '\n';
+        }
         let out = [];
         // TODO: dedup this
         // use a FILO queue
         let listener = (chunk) => {
             if (0 === chunk[0]) {
                 replInst.output.removeListener('data', listener);
-                reply({ out: out.join('') });
+                reply({ ok: true, out: out.join('') });
             }
             out.push(chunk.toString());
         };
@@ -255,7 +258,7 @@ repl.defaults = {
         // DEPRECATED
         'stats/full': 'seneca.stats({summary:false})',
         // TODO: there should be a seneca.tree()
-        tree: 'seneca.root.private$.actrouter',
+        // tree: 'seneca.root.private$.actrouter',
     }),
     inspect: (0, gubu_1.Open)({}),
     cmds: (0, gubu_1.Open)({

@@ -187,6 +187,13 @@ describe('repl', function () {
 
     let res = await si.post('sys:repl,send:cmd', {
       id: 'foo',
+      cmd: '1+2', // newline not required
+    })
+
+    expect(res.out).toEqual('3\n')
+
+    res = await si.post('sys:repl,send:cmd', {
+      id: 'foo',
       cmd: 'sys:repl,echo:true,x:1\n',
     })
 
