@@ -119,6 +119,7 @@ function repl(options) {
             repl: replInst,
         });
     }
+    // TODO: fix: append newline id needed, otherwise times out!
     function send_cmd(msg, reply) {
         let seneca = this;
         // lookup repl by id, using steams to submit cmd and send back response

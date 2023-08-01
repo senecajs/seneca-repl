@@ -160,6 +160,7 @@ function repl(this: any, options: any) {
     })
   }
 
+  // TODO: fix: append newline id needed, otherwise times out!
   function send_cmd(this: any, msg: any, reply: any) {
     let seneca = this
 

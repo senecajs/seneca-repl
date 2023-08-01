@@ -92,17 +92,12 @@ class RequestStream extends Duplex {
     super(options)
     this.spec = spec
     this.buffer = []
-    // console.log('HTTP CTOR')
+    this.processing = false
   }
 
   _write(chunk, encoding, callback) {
+    this.processing = true
     const cmd = chunk.toString().trim()
-    // console.log('HTTP WRITE', cmd)
-
-    // this.buffer.push('FOO'+String.fromCharCode(0))
-    // this._read()
-    // return callback()
-
     const url = this.spec.url
 
     // Determine whether to use http or https based on the URL
@@ -135,6 +130,7 @@ class RequestStream extends Duplex {
             // console.log('HE', data, res)
 
             this.buffer.push(res.out + String.fromCharCode(0))
+            this.processing = false
             this._read()
             callback()
           })
@@ -152,12 +148,19 @@ class RequestStream extends Duplex {
   }
 
   _read(size) {
-    // console.log('H READ')
+    if (this.processing) {
+      return
+    }
+
     let chunk
     while ((chunk = this.buffer.shift())) {
       if (!this.push(chunk)) {
         break
       }
+    }
+
+    if (this.buffer.length === 0) {
+      this.push(null)
     }
   }
 }
@@ -334,9 +337,17 @@ function connect(spec) {
   } else if ('http:' === protocol || 'https:' === protocol) {
     duplex = makeHttpDuplex(spec)
   } else {
-    throw new Error(
-      'unknown protocol: ' + protocol + ' for url: ' + spec.url.href,
-    )
+    try {
+      const makeProtocol = require('./protocol-' +
+        protocol.replace(/[^a-z0-9-_]/g, '') +
+        '.js')
+      return makeProtocol(spec)
+    } catch (e) {
+      // console.log(e)
+      throw new Error(
+        'unknown protocol: ' + protocol + ' for url: ' + spec.url.href,
+      )
+    }
   }
 
   return duplex
