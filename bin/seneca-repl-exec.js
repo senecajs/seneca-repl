@@ -338,7 +338,8 @@ function connect(spec) {
     duplex = makeHttpDuplex(spec)
   } else {
     try {
-      const makeProtocol = require('./protocol-' +
+      const makeProtocol = require(__dirname +
+        '/protocol-' +
         protocol.replace(/[^a-z0-9-_]/g, '') +
         '.js')
       return makeProtocol(spec)
