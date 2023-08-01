@@ -44,8 +44,6 @@ if (null == replAddr) {
 
 try {
   url = new URL(replAddr)
-  // console.log('URL', url)
-
   host = url.hostname || host
   port = '' === url.port ? port : parseInt(url.port)
 
@@ -74,7 +72,6 @@ if (FS.existsSync(historyPath)) {
     .split(/[\r\n]+/)
     .reverse()
     .map((line) => (null != line && '' != line ? history.push(line) : null))
-  console.log('H', history)
 }
 
 let historyFile = null
@@ -110,8 +107,6 @@ class RequestStream extends Duplex {
       cmd,
     })
 
-    // console.log('PD', postData)
-
     let req = httpClient
       .request(
         url.href,
@@ -130,11 +125,8 @@ class RequestStream extends Duplex {
           })
 
           response.on('end', () => {
-            // console.log('DATA', data)
             let res = JSON.parse(data)
-            // console.log('res', res)
 
-            // console.log('HE', data, res)
             if (res.ok) {
               this.buffer.push(res.out + String.fromCharCode(0))
             } else {
@@ -150,7 +142,6 @@ class RequestStream extends Duplex {
         },
       )
       .on('error', (err) => {
-        // console.log('HE', err)
         this.buffer.push(`# ERROR: ${err}\n` + String.fromCharCode(0))
         this._read()
         callback()
@@ -201,15 +192,11 @@ function operate(spec, done) {
   // state.connection.sock = Net.connect(spec.port, spec.host)
   try {
     state.connection.sock = connect(spec)
-    // console.log('SOCK', !!state.connection.sock)
   } catch (err) {
-    // console.log('CA', err)
     return done && done({ err })
   }
 
   state.connection.sock.on('connect', function () {
-    // console.log('SOCK connect')
-
     state.connection.open = true
     delete state.connection.closed
 
@@ -224,14 +211,12 @@ function operate(spec, done) {
   })
 
   state.connection.sock.on('error', function (err) {
-    // console.log('CE', err)
     if (state.connection.open) {
       return done && done({ event: 'error', err })
     }
   })
 
   state.connection.sock.on('close', function (err) {
-    // console.log('CC', err)
     if (state.connection.open) {
       spec.log('\n\nConnection closed.')
     }
@@ -252,7 +237,6 @@ function operate(spec, done) {
 
   state.connection.sock.on('data', function (chunk) {
     const str = chunk.toString('ascii')
-    // console.log('SOCK DATA', str)
 
     if (0 < str.length && 0 === str.charCodeAt(str.length - 1)) {
       responseChunks.push(str)
@@ -307,8 +291,6 @@ function operate(spec, done) {
 
         state.connection.readline
           .on('line', (line) => {
-            // console.log('LINE', line)
-
             if (state.connection.closed) {
               return setImmediate(() => {
                 operate(spec)
@@ -368,7 +350,6 @@ function connect(spec) {
         '.js')
       return makeProtocol(spec)
     } catch (e) {
-      // console.log(e)
       throw new Error(
         'unknown protocol: ' + protocol + ' for url: ' + spec.url.href,
       )
