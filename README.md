@@ -27,7 +27,7 @@ Supports Seneca versions **3.x** and higher.
 ## Recent Articles
 
 * [Version 6 Plan](doc/version-6-pub.md)
-* [Version 6 Release](doc/version-6-release.md)
+* [Version 6 Release](doc/version-6-release-pub.md)
 
 
 ## Install
