@@ -1,6 +1,7 @@
 function rep(n, c) {
   var b = []
-  for (var i = n; 0 < n; n--) {
+  // for (var i = n; 0 < n; n--) {
+  for (; 0 < n; n--) {
     b.push(c)
   }
   return b.join('')

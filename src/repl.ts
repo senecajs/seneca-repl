@@ -170,9 +170,10 @@ function repl(this: any, options: any) {
     let replInst = replMap[replID]
 
     if (null == replInst) {
-      seneca.fail('unknown-repl', { id: replID })
-    } else if ('open' !== replInst.status) {
-      seneca.fail('invalid-status', { id: replID, status: replInst.status })
+      return seneca.fail('unknown-repl', { id: replID })
+    }
+    else if ('open' !== replInst.status) {
+      return seneca.fail('invalid-status', { id: replID, status: replInst.status })
     }
 
     let cmd = msg.cmd
@@ -264,20 +265,20 @@ function make_intern() {
         let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
-            intern.fmt_index(context.act_index) +
-            ': ' +
-            context.inspekt(context.seneca.util.clean(args)) +
-            ' # ' +
-            actid +
-            ' ' +
-            actdef.pattern +
-            ' ' +
-            actdef.id +
-            ' ' +
-            actdef.action +
-            ' ' +
-            (actdef.callpoint ? actdef.callpoint : '') +
-            '\n',
+          intern.fmt_index(context.act_index) +
+          ': ' +
+          context.inspekt(context.seneca.util.clean(args)) +
+          ' # ' +
+          actid +
+          ' ' +
+          actdef.pattern +
+          ' ' +
+          actdef.id +
+          ' ' +
+          actdef.action +
+          ' ' +
+          (actdef.callpoint ? actdef.callpoint : '') +
+          '\n',
         )
         context.act_index_map[actid] = context.act_index
         context.act_index++

@@ -126,10 +126,10 @@ function repl(options) {
         let replID = msg.id || options.host + ':' + options.port;
         let replInst = replMap[replID];
         if (null == replInst) {
-            seneca.fail('unknown-repl', { id: replID });
+            return seneca.fail('unknown-repl', { id: replID });
         }
         else if ('open' !== replInst.status) {
-            seneca.fail('invalid-status', { id: replID, status: replInst.status });
+            return seneca.fail('invalid-status', { id: replID, status: replInst.status });
         }
         let cmd = msg.cmd;
         if (!cmd.endsWith('\n')) {

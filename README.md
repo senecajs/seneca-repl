@@ -12,8 +12,8 @@ a some extra Seneca convenience commands.
 [![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
 [![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=main)](https://coveralls.io/github/senecajs/seneca-repl?branch=main)
 [![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-repl/badge.svg)](https://snyk.io/test/github/senecajs/seneca-repl)
-[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/19459/branches/505694/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=19459&bid=505694)
-[![Maintainability](https://api.codeclimate.com/v1/badges/ee603417bbb953d35ebe/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
+[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/25211/branches/785261/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=25211&bid=785261)
+[![Maintainability](https://api.codeclimate.com/v1/badges/17b0bd2f87252d0dcfc5/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
 
 | ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
 |---|---|

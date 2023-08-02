@@ -40,7 +40,8 @@ async function run() {
       id: 'web',
       cmd: '2+2\n',
     })
-
+    console.log('SEND CMD RES', res)
+    
     await si.ready()
 
     web(si)

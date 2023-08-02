@@ -21,7 +21,7 @@ class LambdaInvokeStream extends Duplex {
   _write(chunk, encoding, done) {
     // console.log('write', chunk)
     this.processing = true
-    const cmd = chunk.toString()
+    let cmd = chunk.toString()
 
     if (!cmd.endsWith('\n')) {
       cmd += '\n'
@@ -58,15 +58,18 @@ class LambdaInvokeStream extends Duplex {
 
           if (500 === res.statusCode) {
             out =
-              '# ERROR: ' + body.error$
-                ? body.error$.code + ' ' + (body.error$?.message || '')
-                : 'unknown'
-          } else {
+              '# ERROR: ' +
+              (body.error$
+               ? body.error$.code + ' ' + (body.error$?.message || '')
+               : 'unknown' )
+          }
+          else {
             out = body.out
           }
 
           this.buffer.push(out + String.fromCharCode(0))
-        } else {
+        }
+        else {
           this.buffer.push(
             '# ERROR: ' + JSON.stringify(data) + String.fromCharCode(0),
           )
