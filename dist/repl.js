@@ -129,7 +129,10 @@ function repl(options) {
             return seneca.fail('unknown-repl', { id: replID });
         }
         else if ('open' !== replInst.status) {
-            return seneca.fail('invalid-status', { id: replID, status: replInst.status });
+            return seneca.fail('invalid-status', {
+                id: replID,
+                status: replInst.status,
+            });
         }
         let cmd = msg.cmd;
         if (!cmd.endsWith('\n')) {

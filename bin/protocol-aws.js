@@ -60,16 +60,14 @@ class LambdaInvokeStream extends Duplex {
             out =
               '# ERROR: ' +
               (body.error$
-               ? body.error$.code + ' ' + (body.error$?.message || '')
-               : 'unknown' )
-          }
-          else {
+                ? body.error$.code + ' ' + (body.error$?.message || '')
+                : 'unknown')
+          } else {
             out = body.out
           }
 
           this.buffer.push(out + String.fromCharCode(0))
-        }
-        else {
+        } else {
           this.buffer.push(
             '# ERROR: ' + JSON.stringify(data) + String.fromCharCode(0),
           )

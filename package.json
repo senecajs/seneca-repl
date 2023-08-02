@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "6.2.1",
+  "version": "6.2.2",
   "main": "dist/repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -44,7 +44,7 @@
     "inks": "^2.0.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.379.1",
+    "@aws-sdk/client-lambda": "^3.382.0",
     "@seneca/entity-util": "^1.4.0",
     "@seneca/maintain": "^0.1.0",
     "jest": "^29.6.2",
