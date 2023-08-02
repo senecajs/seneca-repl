@@ -199,6 +199,13 @@ To run tests, simply use npm:
 Copyright (c) 2015-2020, Richard Rodger and other contributors.
 Licensed under [MIT][].
 
+## Quick Example
+## More Examples
+## Motivation
+## Support
+## API
+## Background
+
 [MIT]: ./LICENSE
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [Senecajs org]: https://github.com/senecajs/
