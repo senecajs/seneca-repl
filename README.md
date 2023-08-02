@@ -1,22 +1,33 @@
-![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
-> A [Seneca.js][] plugin
+![Seneca REPL](http://senecajs.org/files/assets/seneca-logo.png)
+
+> _Seneca REPL_ is a plugin for [Seneca](http://senecajs.org)
 
 
-## NOTE: [Version 2 Plan](doc/version-2.md)
+A plugin that provides a REPL (Read-Execute-Print-Loop) for Seneca
+instances, very much like the standard Node.js command line REPL, with
+a some extra Seneca convenience commands.
 
 
-# seneca-repl
-[![npm version][npm-badge]][npm-url]
-[![Build Status][travis-badge]][travis-url]
-[![Dependency Status][david-badge]][david-url]
-[![Gitter][gitter-badge]][gitter-url]
+[![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
+[![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
+[![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=main)](https://coveralls.io/github/senecajs/seneca-repl?branch=main)
+[![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-repl/badge.svg)](https://snyk.io/test/github/senecajs/seneca-repl)
+[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/19459/branches/505694/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=19459&bid=505694)
+[![Maintainability](https://api.codeclimate.com/v1/badges/ee603417bbb953d35ebe/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
 
 | ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
 |---|---|
 
 
+
 ### Seneca compatibility
 Supports Seneca versions **3.x** and higher.
+
+
+## Recent Articles
+
+* [Version 6 Plan](doc/version-6-pub.md)
+* [Version 6 Release](doc/version-6-release.md)
 
 
 ## Install
