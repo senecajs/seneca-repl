@@ -82,7 +82,7 @@ let spec = {
   host,
   port,
   id,
-  delay: 31111,
+  delay: 111,
   first: true,
 }
 

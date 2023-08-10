@@ -1,0 +1,5 @@
+https://github.com/senecajs/seneca-repl/blob/main/doc/version-6-release-pub.md
+http://www.richardrodger.com/2023/08/02/seneca-repl-version-6-released/
+https://dev.to/rjrodger/senecarepl-version-6-released-277g
+https://rjrodger.hashnode.dev/senecarepl-version-6-released
+
