@@ -41,7 +41,7 @@ function repl(options) {
                 // TODO: fix: should be socket address!!!
                 let address = server.address();
                 seneca.act('sys:repl,use:repl', {
-                    id: address.address + '~' + address.port,
+                    id: address.address + '~' + address.port + `~` + seneca.util.Nid(),
                     server,
                     input: socket,
                     output: socket,
@@ -123,8 +123,8 @@ function repl(options) {
     function send_cmd(msg, reply) {
         let seneca = this;
         // lookup repl by id, using steams to submit cmd and send back response
-        let replID = msg.id || options.host + ':' + options.port;
-        let replInst = replMap[replID];
+        let replID = msg.id;
+        let replInst = replID ? replMap[replID] : null;
         if (null == replInst) {
             return seneca.fail('unknown-repl', { id: replID });
         }
