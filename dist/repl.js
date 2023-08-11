@@ -123,8 +123,8 @@ function repl(options) {
     function send_cmd(msg, reply) {
         let seneca = this;
         // lookup repl by id, using steams to submit cmd and send back response
-        let replID = msg.id || options.host + ':' + options.port;
-        let replInst = replMap[replID];
+        let replID = msg.id;
+        let replInst = replID ? replMap[replID] : null;
         if (null == replInst) {
             return seneca.fail('unknown-repl', { id: replID });
         }
