@@ -61,7 +61,7 @@ function repl(this: any, options: any) {
         let address: any = server.address()
 
         seneca.act('sys:repl,use:repl', {
-          id: address.address + '~' + address.port,
+          id: address.address + '~' + address.port + `~` + seneca.util.Nid(),
           server,
           input: socket,
           output: socket,
