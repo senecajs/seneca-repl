@@ -55,6 +55,7 @@ try {
   process.exit(1)
 }
 
+
 const history = []
 
 const senecaFolder = Path.join(OS.homedir(), '.seneca')

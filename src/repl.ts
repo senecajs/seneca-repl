@@ -134,6 +134,7 @@ function repl(this: any, options: any) {
     let output = msg.output || new PassThrough()
 
     let replSeneca = seneca.root.delegate({ repl$: true, fatal$: false })
+    replSeneca.did = replSeneca.did + '~repl$'
 
     replMap[replID] = replInst = new ReplInstance({
       id: replID,
@@ -267,20 +268,20 @@ function make_intern() {
         let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
-            intern.fmt_index(context.act_index) +
-            ': ' +
-            context.inspekt(context.seneca.util.clean(args)) +
-            ' # ' +
-            actid +
-            ' ' +
-            actdef.pattern +
-            ' ' +
-            actdef.id +
-            ' ' +
-            actdef.action +
-            ' ' +
-            (actdef.callpoint ? actdef.callpoint : '') +
-            '\n',
+          intern.fmt_index(context.act_index) +
+          ': ' +
+          context.inspekt(context.seneca.util.clean(args)) +
+          ' # ' +
+          actid +
+          ' ' +
+          actdef.pattern +
+          ' ' +
+          actdef.id +
+          ' ' +
+          actdef.action +
+          ' ' +
+          (actdef.callpoint ? actdef.callpoint : '') +
+          '\n',
         )
         context.act_index_map[actid] = context.act_index
         context.act_index++
@@ -410,6 +411,10 @@ class ReplInstance {
       act_index_map: {},
       act_index: 1000000,
       cmdMap: this.cmdMap,
+      delegate: {
+        repl$: seneca,
+        root$: seneca.root,
+      },
     })
 
     seneca.on_act_in = intern.make_on_act_in(repl.context)
@@ -438,149 +443,154 @@ class ReplInstance {
       // output.write('Z')
     }
 
-    let cmd_history = context.history
+    try {
 
-    cmdtext = cmdtext.trim()
+      let cmd_history = context.history
 
-    if ('last' === cmdtext && 0 < cmd_history.length) {
-      cmdtext = cmd_history[cmd_history.length - 1]
-    } else {
-      cmd_history.push(cmdtext)
-    }
+      cmdtext = cmdtext.trim()
 
-    // console.log('AAA', cmdtext)
+      if ('last' === cmdtext && 0 < cmd_history.length) {
+        cmdtext = cmd_history[cmd_history.length - 1]
+      } else {
+        cmd_history.push(cmdtext)
+      }
 
-    if (alias[cmdtext]) {
-      cmdtext = alias[cmdtext]
-    }
+      // console.log('AAA', cmdtext)
 
-    let m = cmdtext.match(/^(\S+)/)
-    let cmd = m && m[1]
+      if (alias[cmdtext]) {
+        cmdtext = alias[cmdtext]
+      }
 
-    let argstr = 'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
+      let m = cmdtext.match(/^(\S+)/)
+      let cmd = m && m[1]
 
-    // NOTE: alias can also apply just to command
-    if (alias[cmd]) {
-      cmd = alias[cmd]
-    }
+      let argstr = 'string' === typeof cmd ? cmdtext.substring(cmd.length) : ''
 
-    let cmd_func: Cmd = this.cmdMap[cmd]
+      // NOTE: alias can also apply just to command
+      if (alias[cmd]) {
+        cmd = alias[cmd]
+      }
 
-    if (cmd_func) {
-      return cmd_func({ name: cmd, argstr, context, options, respond })
-    }
+      let cmd_func: Cmd = this.cmdMap[cmd]
 
-    if (!execute_action(cmdtext)) {
-      // context.s.ready(() => {
-      execute_script(cmdtext)
-      //})
-    }
+      if (cmd_func) {
+        return cmd_func({ name: cmd, argstr, context, options, respond })
+      }
 
-    function execute_action(cmdtext: string) {
-      // console.log('EA', cmdtext)
-      try {
-        let msg = cmdtext
+      if (!execute_action(cmdtext)) {
+        // context.s.ready(() => {
+        execute_script(cmdtext)
+        //})
+      }
 
-        // TODO: use a different operator! will conflict with => !!!
-        let m = msg.split(/\s*~>\s*/)
-        if (2 === m.length) {
-          msg = m[0]
-        }
+      function execute_action(cmdtext: string) {
+        // console.log('EA', cmdtext)
+        try {
+          let msg = cmdtext
 
-        let injected_msg = Inks(msg, context)
-        let args = seneca.util.Jsonic(injected_msg)
+          let m = msg.split(/\s*~>\s*/)
+          if (2 === m.length) {
+            msg = m[0]
+          }
 
-        let notmsg =
-          null == args || Array.isArray(args) || 'object' !== typeof args
+          let injected_msg = Inks(msg, context)
+          let args = seneca.util.Jsonic(injected_msg)
 
-        // console.log('ARGS', args, notmsg)
+          let notmsg =
+            null == args || Array.isArray(args) || 'object' !== typeof args
 
-        if (notmsg) {
+          // console.log('ARGS', args, notmsg)
+
+          if (notmsg) {
+            return false
+          }
+
+          context.s.act(args, function (err: any, out: any) {
+            context.err = err
+            context.out = out
+
+            // EXPERIMENTAL! msg ~> x saves msg result into x
+            if (m[1]) {
+              let ma = m[1].split(/\s*=\s*/)
+              if (2 === ma.length) {
+                context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
+              } else {
+                context[m[1]] = out
+              }
+            }
+
+            if (out && !repl.context.act_trace) {
+              // out =
+              //   out && out.entity$
+              //     ? out
+              //     : context.inspekt(seneca.util.clean(out))
+
+              respond(null, out)
+              // output.write(out + '\n')
+              // output.write(new Uint8Array([0]))
+            } else if (err) {
+              // output.write(context.inspekt(err) + '\n')
+              respond(err)
+            }
+          })
+
+          return true
+        } catch (e) {
+          // Not jsonic format, so try to execute as a script
+          // TODO: check actual jsonic parse error so we can give better error
+          // message if not
           return false
         }
-
-        context.s.act(args, function (err: any, out: any) {
-          context.err = err
-          context.out = out
-
-          // EXPERIMENTAL! msg ~> x saves msg result into x
-          if (m[1]) {
-            let ma = m[1].split(/\s*=\s*/)
-            if (2 === ma.length) {
-              context[ma[0]] = Hoek.reach({ out: out, err: err }, ma[1])
-            } else {
-              context[m[1]] = out
-            }
-          }
-
-          if (out && !repl.context.act_trace) {
-            // out =
-            //   out && out.entity$
-            //     ? out
-            //     : context.inspekt(seneca.util.clean(out))
-
-            respond(null, out)
-            // output.write(out + '\n')
-            // output.write(new Uint8Array([0]))
-          } else if (err) {
-            // output.write(context.inspekt(err) + '\n')
-            respond(err)
-          }
-        })
-
-        return true
-      } catch (e) {
-        // Not jsonic format, so try to execute as a script
-        // TODO: check actual jsonic parse error so we can give better error
-        // message if not
-        return false
       }
-    }
 
-    function execute_script(cmdtext: any) {
-      // console.log('EVAL SCRIPT', cmdtext)
-      try {
-        let script = (Vm as any).createScript(cmdtext, {
-          filename: filename,
-          displayErrors: false,
-        })
+      function execute_script(cmdtext: any) {
+        // console.log('EVAL SCRIPT', cmdtext)
+        try {
+          let script = (Vm as any).createScript(cmdtext, {
+            filename: filename,
+            displayErrors: false,
+          })
 
-        let result = script.runInContext(context, {
-          displayErrors: false,
-        })
+          let result = script.runInContext(context, {
+            displayErrors: false,
+          })
 
-        result = result === seneca ? null : result
-        return respond(null, result)
-      } catch (e: any) {
-        if ('SyntaxError' === e.name && e.message.startsWith('await')) {
-          let wrapper = '(async () => { return (' + cmdtext + ') })()'
+          result = result === seneca ? null : result
+          return respond(null, result)
+        } catch (e: any) {
+          if ('SyntaxError' === e.name && e.message.startsWith('await')) {
+            let wrapper = '(async () => { return (' + cmdtext + ') })()'
 
-          try {
-            let script = (Vm as any).createScript(wrapper, {
-              filename: filename,
-              displayErrors: false,
-            })
-
-            let out = script.runInContext(context, {
-              displayErrors: false,
-            })
-
-            out
-              .then((result: any) => {
-                result = result === seneca ? null : result
-                respond(null, result)
+            try {
+              let script = (Vm as any).createScript(wrapper, {
+                filename: filename,
+                displayErrors: false,
               })
-              .catch((e: any) => {
-                return respond(e)
+
+              let out = script.runInContext(context, {
+                displayErrors: false,
               })
-          } catch (e: any) {
+
+              out
+                .then((result: any) => {
+                  result = result === seneca ? null : result
+                  respond(null, result)
+                })
+                .catch((e: any) => {
+                  return respond(e)
+                })
+            } catch (e: any) {
+              return respond(e)
+            }
+          } else {
+            // return respond(e.message)
             return respond(e)
           }
-        } else {
-          // return respond(e.message)
-          return respond(e)
         }
       }
+    }
+    catch (e) {
+      return respond(e)
     }
   }
 

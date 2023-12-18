@@ -204,7 +204,7 @@ const Remove$Cmd = (spec) => {
         let qstr = m[5];
         let seneca = context.seneca;
         let query = seneca.util.Jsonic(qstr);
-        seneca.entity(canon).load$(query, function (err, out) {
+        seneca.entity(canon).remove$(query, function (err, out) {
             if (err) {
                 return respond('ERROR: entity remove$: ', err.message);
             }
@@ -230,6 +230,41 @@ const Entity$Cmd = (spec) => {
         return respond('ERROR: expected: entity$ [[zone/]base/]name [query]');
     }
 };
+const DelegateCmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let args = context.seneca.util.Jsonic(argstr) || [];
+    args = Array.isArray(args) ? args : [args];
+    // console.log('DA', args, context.delegate)
+    let name = args[0];
+    let fixedargs = args[1];
+    let fixedmeta = args[2];
+    let delegate = context.delegate[name];
+    // Just name.
+    if (null == fixedargs && null == fixedmeta) {
+        if (null == delegate) {
+            return respond('ERROR: delegate not found: ' + name);
+        }
+    }
+    // Create new.
+    else {
+        if ({ root$: 1, repl$: 1 }[name]) {
+            return respond('ERROR: delegate name reserved: ' + name);
+        }
+        else if (null != delegate) {
+            return respond('ERROR: delegate already exists: ' + name);
+        }
+        else if (null == name || '' == name) {
+            context.s = context.seneca = context.delegate.repl$;
+        }
+        else {
+            delegate = context.seneca.delegate(fixedargs, fixedmeta);
+            delegate.did = delegate.did + '~' + name;
+            context.delegate[name] = delegate;
+        }
+    }
+    context.s = context.seneca = delegate;
+    respond(null, delegate);
+};
 const Cmds = {
     HelloCmd,
     GetCmd,
@@ -245,6 +280,7 @@ const Cmds = {
     AliasCmd,
     TraceCmd,
     HelpCmd,
+    DelegateCmd,
     List$Cmd,
     Load$Cmd,
     Save$Cmd,
