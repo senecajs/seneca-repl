@@ -9,7 +9,7 @@ function rep(n, c) {
 
 const Seneca = require('seneca')
 
-Seneca({legacy:false})
+Seneca({ legacy: false })
   .test('print')
   .use('promisify')
   .use('..', { port: 20202 })
@@ -21,13 +21,10 @@ Seneca({legacy:false})
   .use('user')
   .use('gateway-auth')
 
-
   .use('owner', {
     ownerprop: 'principal.user',
     fields: ['id:owner_id'],
-    annotate: [
-      'sys:entity',
-    ]
+    annotate: ['sys:entity'],
   })
 
   .use(function foo() {

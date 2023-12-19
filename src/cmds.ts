@@ -279,7 +279,6 @@ const Entity$Cmd: Cmd = (spec: CmdSpec) => {
   }
 }
 
-
 const DelegateCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
 
@@ -311,14 +310,11 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
   else {
     if (({ root$: 1, repl$: 1 } as any)[name]) {
       return respond('ERROR: delegate name reserved: ' + name)
-    }
-    else if (null != delegate) {
+    } else if (null != delegate) {
       return respond('ERROR: delegate already exists: ' + name)
-    }
-    else if (null == name || '' == name) {
+    } else if (null == name || '' == name) {
       context.s = context.seneca = context.delegate.repl$
-    }
-    else {
+    } else {
       let fromDelegate = context.seneca
 
       if (null != fromDelegateName) {
@@ -338,7 +334,6 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
 
   respond(null, delegate)
 }
-
 
 const Cmds: Record<string, Cmd> = {
   HelloCmd,

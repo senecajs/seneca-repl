@@ -14,7 +14,7 @@ const { Duplex } = require('node:stream')
 
 const state = {
   connection: {
-    mode: 'cmd'
+    mode: 'cmd',
   },
 }
 
@@ -56,7 +56,6 @@ try {
   console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
 }
-
 
 const history = []
 
@@ -283,12 +282,12 @@ function operate(spec, done) {
 
       if (null == state.connection.readline) {
         Readline.emitKeypressEvents(process.stdin)
-        
+
         state.connection.readline = Readline.createInterface({
           input: process.stdin,
           output: process.stdout,
-          completer: (linep)=>{
-            return [history.filter(n=>n.startsWith(linep)), linep]
+          completer: (linep) => {
+            return [history.filter((n) => n.startsWith(linep)), linep]
           },
           terminal: true,
           history,
@@ -297,7 +296,7 @@ function operate(spec, done) {
         })
 
         process.stdin.on('keypress', function (key, spec) {
-          if('g' == spec.name && spec.ctrl) {
+          if ('g' == spec.name && spec.ctrl) {
             Readline.cursorTo(process.stdin, 0)
             Readline.clearLine(process.stdin, 1)
             state.connection.readline.setPrompt(state.connection.prompt)
@@ -308,53 +307,49 @@ function operate(spec, done) {
             return
           }
 
-          if('search' === state.connection.mode) {
+          if ('search' === state.connection.mode) {
             let cc = key.charCodeAt(0)
-            if(31 < cc || 8 === cc) {
-              if(127 === cc || 8 === cc) {
+            if (31 < cc || 8 === cc) {
+              if (127 === cc || 8 === cc) {
                 // state.connection.search =
                 //  state.connection.search.substring(0,state.connection.search.length-1)
                 // state.connection.offset = 0
-              }
-              else {
+              } else {
                 state.connection.search += key
               }
-            }
-            else if('r' == spec.name && spec.ctrl) {
+            } else if ('r' == spec.name && spec.ctrl) {
               state.connection.offset++
             }
-            
+
             let search = state.connection.search
-              
-            Readline.cursorTo(process.stdin, 0, ()=>{
+
+            Readline.cursorTo(process.stdin, 0, () => {
               Readline.clearLine(process.stdin, 1)
 
-              const searchprompt = 'search: ['+search+'] '
+              const searchprompt = 'search: [' + search + '] '
               // state.connection.readline.write(searchprompt)
-            
+
               state.connection.found = ''
-              if(''!=search) {
-                let offset =  state.connection.offset
-                for(let i = 0; i < history.length; i++) {
-                  if(history[i].includes(search)) {
-                    if(0 === offset) {
-                      state.connection.readline.write(searchprompt+history[i])
+              if ('' != search) {
+                let offset = state.connection.offset
+                for (let i = 0; i < history.length; i++) {
+                  if (history[i].includes(search)) {
+                    if (0 === offset) {
+                      state.connection.readline.write(searchprompt + history[i])
                       state.connection.found = history[i]
-                      break;
-                    }
-                    else {
+                      break
+                    } else {
                       offset--
                     }
-                }
+                  }
                 }
               }
-              
-              if('' === state.connection.found) {
+
+              if ('' === state.connection.found) {
                 state.connection.readline.write(searchprompt)
               }
             })
-          }
-          else if('r' == spec.name && spec.ctrl) {
+          } else if ('r' == spec.name && spec.ctrl) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
@@ -366,7 +361,7 @@ function operate(spec, done) {
 
         state.connection.readline
           .on('line', (line) => {
-            if('search' === state.connection.mode) {
+            if ('search' === state.connection.mode) {
               Readline.cursorTo(process.stdin, 0)
               Readline.clearLine(process.stdin, 1)
               state.connection.readline.setPrompt(state.connection.prompt)
@@ -429,10 +424,9 @@ function connect(spec) {
     duplex = makeHttpDuplex(spec)
   } else {
     try {
-      const makeProtocol = require(__dirname +
-        '/protocol-' +
-        protocol.replace(/[^a-z0-9-_]/g, '') +
-        '.js')
+      const makeProtocol = require(
+        __dirname + '/protocol-' + protocol.replace(/[^a-z0-9-_]/g, '') + '.js',
+      )
       return makeProtocol(spec)
     } catch (e) {
       throw new Error(

@@ -268,20 +268,20 @@ function make_intern() {
         let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
-          intern.fmt_index(context.act_index) +
-          ': ' +
-          context.inspekt(context.seneca.util.clean(args)) +
-          ' # ' +
-          actid +
-          ' ' +
-          actdef.pattern +
-          ' ' +
-          actdef.id +
-          ' ' +
-          actdef.action +
-          ' ' +
-          (actdef.callpoint ? actdef.callpoint : '') +
-          '\n',
+            intern.fmt_index(context.act_index) +
+            ': ' +
+            context.inspekt(context.seneca.util.clean(args)) +
+            ' # ' +
+            actid +
+            ' ' +
+            actdef.pattern +
+            ' ' +
+            actdef.id +
+            ' ' +
+            actdef.action +
+            ' ' +
+            (actdef.callpoint ? actdef.callpoint : '') +
+            '\n',
         )
         context.act_index_map[actid] = context.act_index
         context.act_index++
@@ -444,7 +444,6 @@ class ReplInstance {
     }
 
     try {
-
       let cmd_history = context.history
 
       cmdtext = cmdtext.trim()
@@ -588,8 +587,7 @@ class ReplInstance {
           }
         }
       }
-    }
-    catch (e) {
+    } catch (e) {
       return respond(e)
     }
   }
