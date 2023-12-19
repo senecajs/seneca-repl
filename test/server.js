@@ -20,6 +20,16 @@ Seneca({legacy:false})
   })
   .use('user')
   .use('gateway-auth')
+
+
+  .use('owner', {
+    ownerprop: 'principal.user',
+    fields: ['id:owner_id'],
+    annotate: [
+      'sys:entity',
+    ]
+  })
+
   .use(function foo() {
     this.message('make:foo', async function (msg) {
       return await this.entity('foo').data$(msg.foo).save$()

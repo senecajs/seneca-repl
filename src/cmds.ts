@@ -104,7 +104,7 @@ const PriorCmd: Cmd = (spec: CmdSpec) => {
 
 const HistoryCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
-  return respond(null, context.history.join('\n'))
+  return respond(null, context.history)
 }
 
 const LogCmd: Cmd = (spec: CmdSpec) => {
@@ -285,11 +285,18 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
 
   let args = context.seneca.util.Jsonic(argstr) || []
   args = Array.isArray(args) ? args : [args]
-  // console.log('DA', args, context.delegate)
+  console.log('DA', args, context.delegate)
 
   let name = args[0]
-  let fixedargs = args[1]
-  let fixedmeta = args[2]
+  let fromDelegateName = args[1]
+  let fixedargs = args[2]
+  let fixedmeta = args[3]
+
+  if ('string' != typeof fromDelegateName) {
+    fromDelegateName = null
+    fixedargs = args[1]
+    fixedmeta = args[2]
+  }
 
   let delegate = context.delegate[name]
 
@@ -312,7 +319,16 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
       context.s = context.seneca = context.delegate.repl$
     }
     else {
-      delegate = context.seneca.delegate(fixedargs, fixedmeta)
+      let fromDelegate = context.seneca
+
+      if (null != fromDelegateName) {
+        fromDelegate = context.delegate[fromDelegateName]
+        if (null == fromDelegate) {
+          return respond('ERROR: unknown delegate: ' + fromDelegateName)
+        }
+      }
+
+      delegate = fromDelegate.delegate(fixedargs, fixedmeta)
       delegate.did = delegate.did + '~' + name
       context.delegate[name] = delegate
     }

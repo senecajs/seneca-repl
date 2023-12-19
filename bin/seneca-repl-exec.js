@@ -13,7 +13,9 @@ const Https = require('node:https')
 const { Duplex } = require('node:stream')
 
 const state = {
-  connection: {},
+  connection: {
+    mode: 'cmd'
+  },
 }
 
 let host = '127.0.0.1'
@@ -280,18 +282,101 @@ function operate(spec, done) {
       spec.log('Connected to Seneca:', state.connection.remote)
 
       if (null == state.connection.readline) {
+        Readline.emitKeypressEvents(process.stdin)
+        
         state.connection.readline = Readline.createInterface({
           input: process.stdin,
           output: process.stdout,
-          // prompt: 'QQQ',
+          completer: (linep)=>{
+            return [history.filter(n=>n.startsWith(linep)), linep]
+          },
           terminal: true,
           history,
           historySize: Number.MAX_SAFE_INTEGER,
           prompt: state.connection.prompt,
         })
 
+        process.stdin.on('keypress', function (key, spec) {
+          if('g' == spec.name && spec.ctrl) {
+            Readline.cursorTo(process.stdin, 0)
+            Readline.clearLine(process.stdin, 1)
+            state.connection.readline.setPrompt(state.connection.prompt)
+            state.connection.readline.prompt()
+            state.connection.found = ''
+            state.connection.mode = 'cmd'
+            state.connection.readline.resume()
+            return
+          }
+
+          if('search' === state.connection.mode) {
+            let cc = key.charCodeAt(0)
+            if(31 < cc || 8 === cc) {
+              if(127 === cc || 8 === cc) {
+                // state.connection.search =
+                //  state.connection.search.substring(0,state.connection.search.length-1)
+                // state.connection.offset = 0
+              }
+              else {
+                state.connection.search += key
+              }
+            }
+            else if('r' == spec.name && spec.ctrl) {
+              state.connection.offset++
+            }
+            
+            let search = state.connection.search
+              
+            Readline.cursorTo(process.stdin, 0, ()=>{
+              Readline.clearLine(process.stdin, 1)
+
+              const searchprompt = 'search: ['+search+'] '
+              // state.connection.readline.write(searchprompt)
+            
+              state.connection.found = ''
+              if(''!=search) {
+                let offset =  state.connection.offset
+                for(let i = 0; i < history.length; i++) {
+                  if(history[i].includes(search)) {
+                    if(0 === offset) {
+                      state.connection.readline.write(searchprompt+history[i])
+                      state.connection.found = history[i]
+                      break;
+                    }
+                    else {
+                      offset--
+                    }
+                }
+                }
+              }
+              
+              if('' === state.connection.found) {
+                state.connection.readline.write(searchprompt)
+              }
+            })
+          }
+          else if('r' == spec.name && spec.ctrl) {
+            state.connection.readline.pause()
+            state.connection.readline.setPrompt('search: [] ')
+            state.connection.readline.prompt()
+            state.connection.mode = 'search'
+            state.connection.search = ''
+            state.connection.offset = 0
+          }
+        })
+
         state.connection.readline
           .on('line', (line) => {
+            if('search' === state.connection.mode) {
+              Readline.cursorTo(process.stdin, 0)
+              Readline.clearLine(process.stdin, 1)
+              state.connection.readline.setPrompt(state.connection.prompt)
+              state.connection.readline.prompt()
+              state.connection.mode = 'cmd'
+              state.connection.readline.write(state.connection.found)
+              state.connection.readline.resume()
+              return
+            }
+
             if (state.connection.closed) {
               return setImmediate(() => {
                 operate(spec)
@@ -311,7 +396,6 @@ function operate(spec, done) {
             }
 
             state.connection.sock.write(line + '\n')
-            // state.connection.readline.prompt()
           })
           .on('error', (err) => {
             console.log('# READLINE ERROR:', err)

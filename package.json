@@ -44,10 +44,11 @@
     "inks": "^2.0.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.474.0",
+    "@aws-sdk/client-lambda": "^3.476.0",
     "@seneca/entity-util": "^1.6.0",
-    "@seneca/gateway-auth": "^0.6.4",
+    "@seneca/gateway-auth": "^1.0.0",
     "@seneca/maintain": "^0.1.0",
+    "@seneca/owner": "^6.0.1",
     "@seneca/user": "^6.3.0",
     "jest": "^29.7.0",
     "prettier": "^3.1.1",
