@@ -234,7 +234,7 @@ const DelegateCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let args = context.seneca.util.Jsonic(argstr) || [];
     args = Array.isArray(args) ? args : [args];
-    console.log('DA', args, context.delegate);
+    // console.log('DA', args, context.delegate)
     let name = args[0];
     let fromDelegateName = args[1];
     let fixedargs = args[2];
