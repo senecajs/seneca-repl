@@ -479,7 +479,7 @@ const DirectiveMap = {
     let func = def.startsWith('async')
       ? 'function(msg,reply,meta){const actfunc=' +
         def +
-        'actfunc.call(this, msg, meta).then(reply).catch(reply)}'
+        ';actfunc.call(this, msg, meta).then(reply).catch(reply)}'
       : def
     return `seneca.find('${pat}',{exact:true,action:'${act}'}).func=` + func
   },
