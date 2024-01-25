@@ -9,7 +9,10 @@ async function run() {
       // debug:{undead:true},
       death_delay: 555,
     })
-      .test()
+
+    si.context.getGlobal = () => global
+
+    si.test()
       // .error((err)=>{
       //   console.log('=======ERROR', err.message)
       // })
@@ -22,7 +25,9 @@ async function run() {
       // .use('..$b',{ host: '0.0.0.0', port: 60606, depth: 1 })
       //.use('..$c',{ host: '0.0.0.0', port: 60606, depth: 1 })
       .message('a:1', async (msg) => ({ x: msg.x }))
-
+      .message('b:1', async function b1(msg) {
+        return { y: msg.y }
+      })
     //console.log('AAAA')
     await si.ready()
 

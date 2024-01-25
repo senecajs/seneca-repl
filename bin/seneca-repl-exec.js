@@ -12,6 +12,9 @@ const Http = require('node:http')
 const Https = require('node:https')
 const { Duplex } = require('node:stream')
 
+const JP = (arg) => JSON.parse(arg)
+const JS = (a0, a1) => JSON.stringify(a0, a1)
+
 const state = {
   connection: {
     mode: 'cmd',
@@ -382,12 +385,9 @@ function operate(spec, done) {
               process.exit(0)
             }
 
-            
             const send = buildSend(line, state)
 
-            if(send.ok) {
-              const line = send.line
-              
+            if (send.ok) {
               if (null != historyFile) {
                 try {
                   FS.appendFileSync(historyFile, line + OS.EOL)
@@ -396,9 +396,8 @@ function operate(spec, done) {
                 }
               }
 
-              state.connection.sock.write(line + '\n')
-            }
-            else {
+              state.connection.sock.write(send.line + '\n')
+            } else {
               console.log('# ERROR:', send.errmsg)
             }
           })
@@ -423,21 +422,156 @@ function operate(spec, done) {
   }
 }
 
-
-function buildSend(line, state) {
+function buildSend(origline, state) {
+  let line = origline
   let out = { ok: false, line }
 
-  if(line.includes('BAD')) {
-    out.errmsg = 'BAD FOUND'
-    return out
-  }
+  const directiveRE = /<%(.*?)%>/g
+  const parts = []
+  let m = null
+  let last = 0
+  while ((m = directiveRE.exec(origline))) {
+    // console.log('D:',m[0],m[1], last, m.index, directiveRE.lastIndex)
+    parts.push(origline.substring(last, m.index))
+    last = directiveRE.lastIndex
 
-  out.line = line.replace(/FOO/g, 'info')
+    let dirout = expr({ src: m[1], fn: DirectiveMap, fixed: DirectiveFixed })
+    parts.push(dirout)
+  }
+  parts.push(origline.substring(last, origline.length))
+
+  // console.log(parts)
+
+  out.line = parts.join('')
   out.ok = true
-  
+
   return out
 }
 
+const DirectiveFixed = {
+  VXGACT:
+    /.*module\.exports\s*=\s*function\s+make_\w+_\w+\s*\(.*?\)\s*\{.*?return\s*(.*)\}[^}]*$/s,
+}
+
+const DirectiveMap = {
+  Load: (path) => {
+    let fullpath = Path.isAbsolute(path) ? path : Path.join(process.cwd(), path)
+    if (FS.existsSync(fullpath)) {
+      let text = FS.readFileSync(fullpath).toString()
+      return JS(text)
+    } else {
+      throw new Error('Unable to read file: ' + fullpath)
+    }
+  },
+  Match: (jstr, re, mI) => {
+    let txt = '' + JP(jstr)
+    let m = re.exec(txt)
+    let out = m ? (null == mI ? m[0] : m[mI]) : ''
+    out = JS(null == out ? '' : '' + out)
+    return out
+  },
+  VxgAction: (pat, act, defstr) => {
+    let def = JP(defstr).replace(/\n+/g, '; ')
+    let func = def.startsWith('async')
+      ? 'function(msg,reply,meta){const actfunc=' +
+        def +
+        'actfunc.call(this, msg, meta).then(reply).catch(reply)}'
+      : def
+    return `seneca.find('${pat}',{exact:true,action:'${act}'}).func=` + func
+  },
+}
+
+// TODO: unify with Gubu version
+/*
+  spec: {
+  src: string
+  fn: {}
+  fixed: {}
+  err: { prefix: '' }
+  }
+  state: {
+  tokens?: string[]
+  i?: number
+  val: any
+
+  }
+  */
+function expr(spec, exprState) {
+  exprState = exprState || { i: 0, val: undefined }
+  let top = false
+
+  if (null == exprState.tokens) {
+    top = true
+    exprState.tokens = []
+    let tre =
+      /\s*,?\s*([)(\.]|"(\\.|[^"\\])*"|\/(\\.|[^\/\\])*\/[a-z]?|[^)(,\s]+)\s*/g
+    let t = null
+    while ((t = tre.exec(spec.src))) {
+      exprState.tokens.push(t[1])
+    }
+  }
+
+  exprState.i = exprState.i || 0
+
+  let head = exprState.tokens[exprState.i]
+
+  let fn = spec.fn[head]
+
+  if (')' === exprState.tokens[exprState.i]) {
+    exprState.i++
+    return exprState.val
+  }
+
+  exprState.i++
+
+  if (null == fn) {
+    let m = null
+    try {
+      let val = spec.fixed[head]
+      if (val) {
+        return val
+      } else if ('undefined' === head) {
+        return undefined
+      } else if ('NaN' === head) {
+        return NaN
+      } else if ((m = head.match(/^\/(.+)\/([a-z])?$/))) {
+        // return new RegExp(head.substring(1, head.length - 1))
+        let re = new RegExp(m[1], m[2])
+        return re
+      } else {
+        return JP(head)
+      }
+    } catch (je) {
+      throw new SyntaxError(
+        `${spec.err?.prefix || ''}` +
+          `Unexpected token ${head} in expression ${spec.src}: ${je.message}`,
+      )
+    }
+  }
+
+  if ('(' === exprState.tokens[exprState.i]) {
+    exprState.i++
+  }
+
+  let args = []
+  let t = null
+  while (null != (t = exprState.tokens[exprState.i]) && ')' !== t) {
+    let ev = expr(spec, exprState)
+    args.push(ev)
+  }
+  exprState.i++
+
+  exprState.val = fn.call(spec.val, ...args)
+
+  if ('.' === exprState.tokens[exprState.i]) {
+    exprState.i++
+    return expr(exprState)
+  } else if (top && exprState.i < exprState.tokens.length) {
+    return expr(exprState)
+  }
+
+  return exprState.val
+}
 
 // Create a duplex stream to operate the REPL
 function connect(spec) {
