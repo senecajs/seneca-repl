@@ -22,6 +22,8 @@
     "test": "jest --coverage",
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
+    "smoke":"node test/smoke.js",
+    "smoke-repl":"node ./bin/seneca-repl-exec.js",
     "prettier": "prettier --write --no-semi --single-quote bin/*.js src/*.ts test/*.js",
     "doc": "seneca-doc",
     "reset": "npm run clean && npm i && npm run build && npm test",

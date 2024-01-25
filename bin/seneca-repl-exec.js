@@ -382,15 +382,25 @@ function operate(spec, done) {
               process.exit(0)
             }
 
-            if (null != historyFile) {
-              try {
-                FS.appendFileSync(historyFile, line + OS.EOL)
-              } catch (e) {
-                // Don't save history
-              }
-            }
+            
+            const send = buildSend(line, state)
 
-            state.connection.sock.write(line + '\n')
+            if(send.ok) {
+              const line = send.line
+              
+              if (null != historyFile) {
+                try {
+                  FS.appendFileSync(historyFile, line + OS.EOL)
+                } catch (e) {
+                  // Don't save history
+                }
+              }
+
+              state.connection.sock.write(line + '\n')
+            }
+            else {
+              console.log('# ERROR:', send.errmsg)
+            }
           })
           .on('error', (err) => {
             console.log('# READLINE ERROR:', err)
@@ -412,6 +422,22 @@ function operate(spec, done) {
     }
   }
 }
+
+
+function buildSend(line, state) {
+  let out = { ok: false, line }
+
+  if(line.includes('BAD')) {
+    out.errmsg = 'BAD FOUND'
+    return out
+  }
+
+  out.line = line.replace(/FOO/g, 'info')
+  out.ok = true
+  
+  return out
+}
+
 
 // Create a duplex stream to operate the REPL
 function connect(spec) {

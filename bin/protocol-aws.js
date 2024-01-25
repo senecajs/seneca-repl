@@ -1,5 +1,17 @@
 const { Duplex } = require('stream')
-const { LambdaClient, InvokeCommand } = require('@aws-sdk/client-lambda')
+
+let AWS_SDK_CLIENT_LAMBDA = null
+try {
+  AWS_SDK_CLIENT_LAMBDA = require('@aws-sdk/client-lambda')
+}
+catch(e) {
+  console.error(e.message)
+  console.error('Install the module @aws-sdk/client-lambda to access AWS Lambda REPLs.')
+  process.exit(1)
+}
+
+// TODO: try catch and print error if not found
+const { LambdaClient, InvokeCommand } = AWS_SDK_CLIENT_LAMBDA
 
 // seneca-repl aws://lambda/my-function-name?region=eu-west-1
 
