@@ -1,7 +1,7 @@
 {
   "name": "@seneca/repl",
   "description": "Provides a client and server REPL for Seneca microservice systems.",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "main": "dist/repl.js",
   "license": "MIT",
   "author": "Richard Rodger (https://github.com/rjrodger)",
@@ -22,8 +22,8 @@
     "test": "jest --coverage",
     "test-some": "jest -t",
     "test-watch": "jest --coverage --watchAll",
-    "smoke":"node test/smoke.js",
-    "smoke-repl":"node ./bin/seneca-repl-exec.js",
+    "smoke": "node test/smoke.js",
+    "smoke-repl": "node ./bin/seneca-repl-exec.js",
     "prettier": "prettier --write --no-semi --single-quote bin/*.js src/*.ts test/*.js",
     "doc": "seneca-doc",
     "reset": "npm run clean && npm i && npm run build && npm test",
@@ -43,7 +43,8 @@
   },
   "dependencies": {
     "@hapi/hoek": "^11.0.4",
-    "inks": "^2.0.0"
+    "inks": "^2.0.0",
+    "terser": "^5.27.0"
   },
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.499.0",

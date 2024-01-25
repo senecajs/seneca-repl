@@ -12,6 +12,8 @@ const Http = require('node:http')
 const Https = require('node:https')
 const { Duplex } = require('node:stream')
 
+const { minify_sync } = require('terser')
+
 const JP = (arg) => JSON.parse(arg)
 const JS = (a0, a1) => JSON.stringify(a0, a1)
 
@@ -471,7 +473,9 @@ const DirectiveMap = {
     return out
   },
   VxgAction: (pat, act, defstr) => {
-    let def = JP(defstr).replace(/\n+/g, '; ')
+    let def = minify_sync(JP(defstr), {
+      mangle: false,
+    }).code
     let func = def.startsWith('async')
       ? 'function(msg,reply,meta){const actfunc=' +
         def +
