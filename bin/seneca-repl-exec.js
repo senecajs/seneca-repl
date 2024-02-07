@@ -338,6 +338,7 @@ function operate(spec, done) {
               Readline.clearLine(process.stdout, 0)
 	      state.connection.readline.line = ''
 
+              const DISTANCE_TO_REVSEARCH_BOX = 2
               const searchprompt = 'search: [' + search + '] '
               // state.connection.readline.write(searchprompt)
 
@@ -349,7 +350,7 @@ function operate(spec, done) {
                     if (0 === offset) {
                       state.connection.readline.write(searchprompt + history[i])
                       state.connection.found = history[i]
-                      Readline.moveCursor(process.stdout, -(2 + history[i].length))
+                      Readline.moveCursor(process.stdout, -(DISTANCE_TO_REVSEARCH_BOX + history[i].length))
                       break
                     } else {
                       offset--
@@ -360,14 +361,14 @@ function operate(spec, done) {
 
               if ('' === state.connection.found) {
                 state.connection.readline.write(searchprompt)
-                Readline.moveCursor(process.stdout, -2)
+                Readline.moveCursor(process.stdout, -DISTANCE_TO_REVSEARCH_BOX)
               }
             })
           } else if ('r' == spec.name && spec.ctrl) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
-            Readline.moveCursor(process.stdout, -2)
+            Readline.moveCursor(process.stdout, -DISTANCE_TO_REVSEARCH_BOX)
             state.connection.mode = 'search'
             state.connection.search = ''
             state.connection.offset = 0
