@@ -313,18 +313,20 @@ function operate(spec, done) {
           }
 
           if ('search' === state.connection.mode) {
-            let cc = key.charCodeAt(0)
-            if (31 < cc || 8 === cc) {
-              if (127 === cc || 8 === cc) {
-                // state.connection.search =
-                //  state.connection.search.substring(0,state.connection.search.length-1)
-                // state.connection.offset = 0
-              } else {
-                state.connection.search += key
-              }
-            } else if ('r' == spec.name && spec.ctrl) {
-              state.connection.offset++
-            }
+            if (key) { // NOTE: sometimes `key` is undefined (e.g. when an arrow-key is pressed)
+	      let cc = key.charCodeAt(0)
+	      if (31 < cc || 8 === cc) {
+		if (127 === cc || 8 === cc) {
+		  // state.connection.search =
+		  //  state.connection.search.substring(0,state.connection.search.length-1)
+		  // state.connection.offset = 0
+		} else {
+		  state.connection.search += key
+		}
+	      } else if ('r' == spec.name && spec.ctrl) {
+		state.connection.offset++
+	      }
+	    }
 
             let search = state.connection.search
 
