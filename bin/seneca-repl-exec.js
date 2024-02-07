@@ -343,6 +343,7 @@ function operate(spec, done) {
                     if (0 === offset) {
                       state.connection.readline.write(searchprompt + history[i])
                       state.connection.found = history[i]
+		      Readline.moveCursor(process.stdout, -(2 + history[i].length))
                       break
                     } else {
                       offset--
@@ -353,12 +354,14 @@ function operate(spec, done) {
 
               if ('' === state.connection.found) {
                 state.connection.readline.write(searchprompt)
+                Readline.moveCursor(process.stdout, -2)
               }
             })
           } else if ('r' == spec.name && spec.ctrl) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
+	    Readline.moveCursor(process.stdout, -2)
             state.connection.mode = 'search'
             state.connection.search = ''
             state.connection.offset = 0
