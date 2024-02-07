@@ -17,6 +17,9 @@ const { minify_sync } = require('terser')
 const JP = (arg) => JSON.parse(arg)
 const JS = (a0, a1) => JSON.stringify(a0, a1)
 
+const makesearchprompt = search => 'search: [' + search + '] '
+const DISTANCE_TO_SEARCH_BOX = 2
+
 const state = {
   connection: {
     mode: 'cmd',
@@ -338,8 +341,6 @@ function operate(spec, done) {
               Readline.clearLine(process.stdout, 0)
 	      state.connection.readline.line = ''
 
-              const DISTANCE_TO_REVSEARCH_BOX = 2
-              const searchprompt = 'search: [' + search + '] '
               // state.connection.readline.write(searchprompt)
 
               state.connection.found = ''
@@ -348,9 +349,9 @@ function operate(spec, done) {
                 for (let i = 0; i < history.length; i++) {
                   if (history[i].includes(search)) {
                     if (0 === offset) {
-                      state.connection.readline.write(searchprompt + history[i])
+                      state.connection.readline.write(makesearchprompt(search) + history[i])
                       state.connection.found = history[i]
-                      Readline.moveCursor(process.stdout, -(DISTANCE_TO_REVSEARCH_BOX + history[i].length))
+                      Readline.moveCursor(process.stdout, -(DISTANCE_TO_SEARCH_BOX + history[i].length))
                       break
                     } else {
                       offset--
@@ -360,15 +361,15 @@ function operate(spec, done) {
               }
 
               if ('' === state.connection.found) {
-                state.connection.readline.write(searchprompt)
-                Readline.moveCursor(process.stdout, -DISTANCE_TO_REVSEARCH_BOX)
+                state.connection.readline.write(makesearchprompt(search))
+                Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
               }
             })
           } else if ('r' == spec.name && spec.ctrl) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
-            Readline.moveCursor(process.stdout, -DISTANCE_TO_REVSEARCH_BOX)
+            Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
             state.connection.mode = 'search'
             state.connection.search = ''
             state.connection.offset = 0
