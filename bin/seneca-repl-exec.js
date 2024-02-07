@@ -349,7 +349,7 @@ function operate(spec, done) {
                     if (0 === offset) {
                       state.connection.readline.write(searchprompt + history[i])
                       state.connection.found = history[i]
-		      Readline.moveCursor(process.stdout, -(2 + history[i].length))
+                      Readline.moveCursor(process.stdout, -(2 + history[i].length))
                       break
                     } else {
                       offset--
@@ -367,7 +367,7 @@ function operate(spec, done) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
-	    Readline.moveCursor(process.stdout, -2)
+            Readline.moveCursor(process.stdout, -2)
             state.connection.mode = 'search'
             state.connection.search = ''
             state.connection.offset = 0
