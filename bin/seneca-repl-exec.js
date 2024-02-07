@@ -313,7 +313,11 @@ function operate(spec, done) {
           }
 
           if ('search' === state.connection.mode) {
-            if (key) { // NOTE: sometimes `key` is undefined (e.g. when an arrow-key is pressed)
+            if (spec.name === 'backspace') {
+              state.connection.search = state.connection.search.slice(0, -1)
+	    } else if (spec.ctrl && spec.name === 'u') {
+	      state.connection.search = ''
+	    } else if (key) { // NOTE: sometimes `key` is undefined (e.g. when an arrow-key is pressed)
 	      let cc = key.charCodeAt(0)
 	      if (31 < cc || 8 === cc) {
 		if (127 === cc || 8 === cc) {
