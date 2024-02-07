@@ -329,7 +329,8 @@ function operate(spec, done) {
             let search = state.connection.search
 
             Readline.cursorTo(process.stdout, 0, () => {
-              Readline.clearLine(process.stdout, 1)
+              Readline.clearLine(process.stdout, 0)
+	      state.connection.readline.line = ''
 
               const searchprompt = 'search: [' + search + '] '
               // state.connection.readline.write(searchprompt)
