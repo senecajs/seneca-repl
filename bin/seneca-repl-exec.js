@@ -377,6 +377,8 @@ function operate(spec, done) {
         state.connection.readline
           .on('line', (line) => {
             if ('search' === state.connection.mode) {
+              history.shift() // NOTE: here we are removing the revsearch prompt from the history
+
               Readline.cursorTo(process.stdin, 0)
               Readline.clearLine(process.stdin, 1)
               state.connection.readline.setPrompt(state.connection.prompt)
