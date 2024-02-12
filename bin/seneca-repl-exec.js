@@ -17,6 +17,9 @@ const { minify_sync } = require('terser')
 const JP = (arg) => JSON.parse(arg)
 const JS = (a0, a1) => JSON.stringify(a0, a1)
 
+const makesearchprompt = search => 'search: [' + search + '] '
+const DISTANCE_TO_SEARCH_BOX = 2
+
 const state = {
   connection: {
     mode: 'cmd',
@@ -313,25 +316,31 @@ function operate(spec, done) {
           }
 
           if ('search' === state.connection.mode) {
-            let cc = key.charCodeAt(0)
-            if (31 < cc || 8 === cc) {
-              if (127 === cc || 8 === cc) {
-                // state.connection.search =
-                //  state.connection.search.substring(0,state.connection.search.length-1)
-                // state.connection.offset = 0
-              } else {
-                state.connection.search += key
-              }
-            } else if ('r' == spec.name && spec.ctrl) {
-              state.connection.offset++
-            }
+            if (spec.name === 'backspace') {
+              state.connection.search = state.connection.search.slice(0, -1)
+	    } else if (spec.ctrl && spec.name === 'u') {
+	      state.connection.search = ''
+	    } else if (key) { // NOTE: sometimes `key` is undefined (e.g. when an arrow-key is pressed)
+	      let cc = key.charCodeAt(0)
+	      if (31 < cc || 8 === cc) {
+		if (127 === cc || 8 === cc) {
+		  // state.connection.search =
+		  //  state.connection.search.substring(0,state.connection.search.length-1)
+		  // state.connection.offset = 0
+		} else {
+		  state.connection.search += key
+		}
+	      } else if ('r' == spec.name && spec.ctrl) {
+		state.connection.offset++
+	      }
+	    }
 
             let search = state.connection.search
 
-            Readline.cursorTo(process.stdin, 0, () => {
-              Readline.clearLine(process.stdin, 1)
+            Readline.cursorTo(process.stdout, 0, () => {
+              Readline.clearLine(process.stdout, 0)
+	      state.connection.readline.line = ''
 
-              const searchprompt = 'search: [' + search + '] '
               // state.connection.readline.write(searchprompt)
 
               state.connection.found = ''
@@ -340,8 +349,9 @@ function operate(spec, done) {
                 for (let i = 0; i < history.length; i++) {
                   if (history[i].includes(search)) {
                     if (0 === offset) {
-                      state.connection.readline.write(searchprompt + history[i])
+                      state.connection.readline.write(makesearchprompt(search) + history[i])
                       state.connection.found = history[i]
+                      Readline.moveCursor(process.stdout, -(DISTANCE_TO_SEARCH_BOX + history[i].length))
                       break
                     } else {
                       offset--
@@ -351,13 +361,15 @@ function operate(spec, done) {
               }
 
               if ('' === state.connection.found) {
-                state.connection.readline.write(searchprompt)
+                state.connection.readline.write(makesearchprompt(search))
+                Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
               }
             })
           } else if ('r' == spec.name && spec.ctrl) {
             state.connection.readline.pause()
             state.connection.readline.setPrompt('search: [] ')
             state.connection.readline.prompt()
+            Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
             state.connection.mode = 'search'
             state.connection.search = ''
             state.connection.offset = 0
@@ -367,6 +379,8 @@ function operate(spec, done) {
         state.connection.readline
           .on('line', (line) => {
             if ('search' === state.connection.mode) {
+              history.shift() // NOTE: here we are removing the revsearch prompt from the history
+
               Readline.cursorTo(process.stdin, 0)
               Readline.clearLine(process.stdin, 1)
               state.connection.readline.setPrompt(state.connection.prompt)
