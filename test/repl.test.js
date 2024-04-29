@@ -117,6 +117,20 @@ describe('repl', function () {
     })
   })
 
+  it('cmd_data', async function () {
+    const si = await Seneca({ tag: 'foo' }).test()
+    Cmds.DataCmd({
+      name: 'get',
+      argstr: 'foo',
+      context: { seneca: si, foo: { x: 1 } },
+      options: {},
+      respond: (err, out) => {
+        expect(err).toBeNull()
+        expect(out).toEqual('{"x":1}')
+      },
+    })
+  })
+
   it('happy', async function () {
     const si = await Seneca()
       .use('promisify')
@@ -381,6 +395,14 @@ describe('repl', function () {
               {
                 send: 'list$ foo\n',
                 expect: /Entity.*x: 1.*x: 2/s,
+              },
+              {
+                send: 'b={x:1}\n',
+                expect: '{ x: 1 }',
+              },
+              {
+                send: 'data b\n',
+                expect: '{"x":1}',
               },
             ]
 

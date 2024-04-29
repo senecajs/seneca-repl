@@ -1,6 +1,7 @@
-/* Copyright © 2023 Richard Rodger and other contributors, MIT License. */
+/* Copyright © 2023-2024 Richard Rodger and other contributors, MIT License. */
 
 import Hoek from '@hapi/hoek'
+import JsonStringify from 'json-stringify-safe'
 
 import type { CmdSpec, Cmd } from './types'
 
@@ -169,6 +170,27 @@ const TraceCmd: Cmd = (spec: CmdSpec) => {
 const HelpCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
   return respond(null, context.cmdMap)
+}
+
+const DataCmd: Cmd = (spec: CmdSpec) => {
+  const { context, argstr, respond } = spec
+  let m = argstr.match(/^\s*([^\s]+)/)
+
+  if (m) {
+    let varname = m[1]
+    let data = context[varname]
+
+    try {
+      let json = JsonStringify(data)
+      return respond(null, json)
+    } catch (err: any) {
+      return respond(
+        'ERROR: JSON stringify failed for ' + varname + ': ' + err.message,
+      )
+    }
+  } else {
+    return respond('ERROR: expected: data <var> [local-file]')
+  }
 }
 
 const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/
@@ -351,6 +373,7 @@ const Cmds: Record<string, Cmd> = {
   TraceCmd,
   HelpCmd,
   DelegateCmd,
+  DataCmd,
 
   List$Cmd,
   Load$Cmd,

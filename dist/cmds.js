@@ -1,11 +1,12 @@
 "use strict";
-/* Copyright © 2023 Richard Rodger and other contributors, MIT License. */
+/* Copyright © 2023-2024 Richard Rodger and other contributors, MIT License. */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cmds = void 0;
 const hoek_1 = __importDefault(require("@hapi/hoek"));
+const json_stringify_safe_1 = __importDefault(require("json-stringify-safe"));
 const utils_1 = require("./utils");
 // NOTE: The function name prefix (lowercased) is the command name.
 const HelloCmd = (spec) => {
@@ -137,6 +138,24 @@ const TraceCmd = (spec) => {
 const HelpCmd = (spec) => {
     const { context, respond } = spec;
     return respond(null, context.cmdMap);
+};
+const DataCmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(/^\s*([^\s]+)/);
+    if (m) {
+        let varname = m[1];
+        let data = context[varname];
+        try {
+            let json = (0, json_stringify_safe_1.default)(data);
+            return respond(null, json);
+        }
+        catch (err) {
+            return respond('ERROR: JSON stringify failed for ' + varname + ': ' + err.message);
+        }
+    }
+    else {
+        return respond('ERROR: expected: data <var> [local-file]');
+    }
 };
 const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/;
 const List$Cmd = (spec) => {
@@ -294,6 +313,7 @@ const Cmds = {
     TraceCmd,
     HelpCmd,
     DelegateCmd,
+    DataCmd,
     List$Cmd,
     Load$Cmd,
     Save$Cmd,

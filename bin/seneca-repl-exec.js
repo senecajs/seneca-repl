@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/* Copyright (c) 2019-2023 voxgig and other contributors, MIT License */
+/* Copyright (c) 2019-2024 voxgig and other contributors, MIT License */
 'use strict'
 
 const OS = require('node:os')
@@ -58,7 +58,7 @@ try {
   id = url.searchParams.get('id')
   id = null == id || '' === id ? 'web' : id
 } catch (e) {
-  console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
+  spec.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
 }
 
@@ -183,10 +183,10 @@ function reconnect(spec) {
           reconnect(spec)
         }, spec.delay)
       } else if (result.err) {
-        console.log('# CONNECTION ERROR:', result.err)
+        spec.log('# CONNECTION ERROR:', result.err)
       }
     } else {
-      console.log('# CONNECTION ERROR: no-result')
+      spec.log('# CONNECTION ERROR: no-result')
       process.exit(1)
     }
   })
@@ -273,9 +273,9 @@ function operate(spec, done) {
           received = received.startsWith('# ERROR')
             ? received
             : '# ERROR: ' + received
-          console.log(received)
+          spec.log(received)
         } else {
-          console.log('# HELLO ERROR: ', err.message, 'hello:', received)
+          spec.log('# HELLO ERROR: ', err.message, 'hello:', received)
         }
 
         process.exit(1)
@@ -398,13 +398,15 @@ function operate(spec, done) {
                 }
               }
 
+              prepareSend(send, state)
+
               state.connection.sock.write(send.line + '\n')
             } else {
-              console.log('# ERROR:', send.errmsg)
+              spec.log('# ERROR:', send.errmsg)
             }
           })
           .on('error', (err) => {
-            console.log('# READLINE ERROR:', err)
+            spec.log('# READLINE ERROR:', err)
             process.exit(1)
           })
           .on('close', () => {
@@ -417,9 +419,44 @@ function operate(spec, done) {
       state.connection.readline.prompt()
     } else {
       received = received.replace(/\n+$/, '\n')
-      spec.log(received)
+
+      if ('data' === state.connection.mode) {
+        state.connection.mode = 'cmd'
+        handleData(state, received)
+      } else {
+        spec.log(received)
+      }
 
       state.connection.readline.prompt()
+    }
+  }
+}
+
+function handleData(state, received) {
+  const savefile = state.connection.savefile
+  state.connection.savefile = null
+
+  let jsonstr = received.trim().replace(/[\r\n]/g, '')
+  jsonstr = jsonstr.substring(1, jsonstr.length - 1)
+
+  let data = null
+  try {
+    data = JSON.parse(jsonstr)
+  } catch (err) {
+    spec.log('# ERROR: invalid JSON recieved: ' + err.message)
+  }
+
+  const localjsonstr = JSON.stringify(data)
+
+  if (null == savefile) {
+    spec.log(localjsonstr)
+  } else {
+    try {
+      FS.writeFileSync(savefile, localjsonstr)
+    } catch (err) {
+      spec.log(
+        '# ERROR: unable to save JSON data to ' + savefile + ': ' + err.message,
+      )
     }
   }
 }
@@ -433,7 +470,6 @@ function buildSend(origline, state) {
   let m = null
   let last = 0
   while ((m = directiveRE.exec(origline))) {
-    // console.log('D:',m[0],m[1], last, m.index, directiveRE.lastIndex)
     parts.push(origline.substring(last, m.index))
     last = directiveRE.lastIndex
 
@@ -442,12 +478,20 @@ function buildSend(origline, state) {
   }
   parts.push(origline.substring(last, origline.length))
 
-  // console.log(parts)
-
   out.line = parts.join('')
   out.ok = true
 
   return out
+}
+
+function prepareSend(send, state) {
+  let m = null
+
+  // > data varname local-file
+  if ((m = send.line.match(/^\s*data\s+([^\s]+)(\s+(.*))?/))) {
+    state.connection.mode = 'data'
+    state.connection.savefile = m[3]
+  }
 }
 
 const DirectiveFixed = {
