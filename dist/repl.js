@@ -276,7 +276,7 @@ class ReplInstance {
         this.status = 'init';
         this.log = [];
         this.state = {
-            data: false
+            data: false,
         };
         this.id = spec.id;
         this.cmdMap = spec.cmdMap;
