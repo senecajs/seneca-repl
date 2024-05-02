@@ -147,7 +147,7 @@ const DataCmd = (spec) => {
         let data = context[varname];
         try {
             let json = (0, json_stringify_safe_1.default)(data);
-            return respond(null, json);
+            return respond(null, json, { data: true });
         }
         catch (err) {
             return respond('ERROR: JSON stringify failed for ' + varname + ': ' + err.message);

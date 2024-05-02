@@ -10,6 +10,7 @@ const node_stream_1 = require("node:stream");
 const node_net_1 = __importDefault(require("node:net"));
 const node_repl_1 = __importDefault(require("node:repl"));
 const node_vm_1 = __importDefault(require("node:vm"));
+const node_util_1 = __importDefault(require("node:util"));
 const gubu_1 = require("gubu");
 const hoek_1 = __importDefault(require("@hapi/hoek"));
 const Inks = require('inks');
@@ -274,6 +275,9 @@ class ReplInstance {
     constructor(spec) {
         this.status = 'init';
         this.log = [];
+        this.state = {
+            data: false
+        };
         this.id = spec.id;
         this.cmdMap = spec.cmdMap;
         this.server = spec.server;
@@ -290,6 +294,7 @@ class ReplInstance {
             terminal: false,
             useGlobal: false,
             eval: this.evaluate.bind(this),
+            writer: this.writer.bind(this),
         }));
         repl.on('exit', () => {
             this.update('closed');
@@ -333,6 +338,21 @@ class ReplInstance {
     update(status) {
         this.status = status;
     }
+    writer(val) {
+        if (this.state.data) {
+            this.state.data = false;
+            return node_util_1.default.inspect(val, {
+                depth: null,
+                maxArrayLength: null,
+                maxStringLength: null,
+                breakLength: Infinity,
+                compact: true,
+            });
+        }
+        else {
+            return node_util_1.default.inspect(val);
+        }
+    }
     evaluate(cmdtext, context, filename, origRespond) {
         // console.log('EVAL', cmdtext)
         const seneca = this.seneca;
@@ -340,8 +360,11 @@ class ReplInstance {
         const options = this.options;
         const alias = options.alias;
         const output = this.output;
-        const respond = (...args) => {
-            origRespond(...args);
+        const respond = (err, res, opts = {}) => {
+            if (true === opts.data) {
+                this.state.data = true;
+            }
+            origRespond(err, res);
             output.write(String.fromCharCode(0));
             // output.write(new Uint8Array([0]))
             // output.write('Z')

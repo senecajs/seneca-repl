@@ -243,6 +243,7 @@ function operate(spec, done) {
     )
   })
 
+  /*
   const responseChunks = []
 
   state.connection.sock.on('data', function (chunk) {
@@ -259,7 +260,29 @@ function operate(spec, done) {
       responseChunks.push(str)
     }
   })
+  */
 
+
+  const responseChunks = []
+
+  state.connection.sock.on('data', function (chunk) {
+    // console.log('CHUNK', chunk.length, chunk.toString('ascii'))
+
+    if (0 < chunk.length && 0 === chunk[chunk.length - 1]) {
+      responseChunks.push(chunk.slice(0,chunk.length - 1))
+      let received = responseChunks.flat()
+      const str = received.toString('utf8')
+      responseChunks.length = 0
+      spec.first = false
+      console.log('HANDLE-DATA<'+str+'>')
+      handleResponse(str)
+    }
+    else if (0 < chunk.length) {
+      responseChunks.push(chunk)
+    }
+  })
+
+  
   function handleResponse(received) {
     if (state.connection.first) {
       let first = true

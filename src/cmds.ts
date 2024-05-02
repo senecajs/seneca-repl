@@ -182,7 +182,7 @@ const DataCmd: Cmd = (spec: CmdSpec) => {
 
     try {
       let json = JsonStringify(data)
-      return respond(null, json)
+      return respond(null, json, { data: true })
     } catch (err: any) {
       return respond(
         'ERROR: JSON stringify failed for ' + varname + ': ' + err.message,

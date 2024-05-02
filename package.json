@@ -48,7 +48,7 @@
     "terser": "^5.31.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.564.0",
+    "@aws-sdk/client-lambda": "^3.568.0",
     "@seneca/entity-util": "^2.0.0",
     "@seneca/gateway-auth": "^1.0.2",
     "@seneca/maintain": "^0.1.0",

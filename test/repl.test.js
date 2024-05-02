@@ -404,6 +404,10 @@ describe('repl', function () {
                 send: 'data b\n',
                 expect: '{"x":1}',
               },
+              {
+                send: 'a:1,x:2\n',
+                expect: 'x: 2',
+              },
             ]
 
             // console.log('QUIT')

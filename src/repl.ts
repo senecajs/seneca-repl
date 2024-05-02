@@ -9,6 +9,7 @@ import { PassThrough } from 'node:stream'
 import Net, { Server } from 'node:net'
 import Repl from 'node:repl'
 import Vm from 'node:vm'
+import Util from 'node:util'
 
 import { Open } from 'gubu'
 import Hoek from '@hapi/hoek'
@@ -268,20 +269,20 @@ function make_intern() {
         let actid = (meta || args.meta$ || {}).id
         context.socket.write(
           'IN  ' +
-            intern.fmt_index(context.act_index) +
-            ': ' +
-            context.inspekt(context.seneca.util.clean(args)) +
-            ' # ' +
-            actid +
-            ' ' +
-            actdef.pattern +
-            ' ' +
-            actdef.id +
-            ' ' +
-            actdef.action +
-            ' ' +
-            (actdef.callpoint ? actdef.callpoint : '') +
-            '\n',
+          intern.fmt_index(context.act_index) +
+          ': ' +
+          context.inspekt(context.seneca.util.clean(args)) +
+          ' # ' +
+          actid +
+          ' ' +
+          actdef.pattern +
+          ' ' +
+          actdef.id +
+          ' ' +
+          actdef.action +
+          ' ' +
+          (actdef.callpoint ? actdef.callpoint : '') +
+          '\n',
         )
         context.act_index_map[actid] = context.act_index
         context.act_index++
@@ -358,6 +359,9 @@ class ReplInstance {
   options: any
   cmdMap: any
   event: any
+  state = {
+    data: false
+  }
 
   constructor(spec: any) {
     this.id = spec.id
@@ -378,6 +382,7 @@ class ReplInstance {
       terminal: false,
       useGlobal: false,
       eval: this.evaluate.bind(this),
+      writer: this.writer.bind(this),
     }))
 
     repl.on('exit', () => {
@@ -428,6 +433,22 @@ class ReplInstance {
     this.status = status
   }
 
+  writer(this: any, val: any) {
+    if (this.state.data) {
+      this.state.data = false
+      return Util.inspect(val, {
+        depth: null,
+        maxArrayLength: null,
+        maxStringLength: null,
+        breakLength: Infinity,
+        compact: true,
+      })
+    }
+    else {
+      return Util.inspect(val)
+    }
+  }
+
   evaluate(cmdtext: any, context: any, filename: any, origRespond: any) {
     // console.log('EVAL', cmdtext)
     const seneca = this.seneca
@@ -436,8 +457,12 @@ class ReplInstance {
     const alias = options.alias
     const output = this.output
 
-    const respond = (...args: any) => {
-      origRespond(...args)
+    const respond = (err: any, res?: any, opts: any = {}) => {
+      if (true === opts.data) {
+        this.state.data = true
+      }
+
+      origRespond(err, res)
       output.write(String.fromCharCode(0))
       // output.write(new Uint8Array([0]))
       // output.write('Z')
