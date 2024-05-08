@@ -32,7 +32,6 @@ class LambdaInvokeStream extends Duplex {
   }
 
   _write(chunk, encoding, done) {
-    // console.log('write', chunk)
     this.processing = true
     let cmd = chunk.toString()
 
@@ -52,20 +51,14 @@ class LambdaInvokeStream extends Duplex {
       }),
     }
 
-    // console.log('params',params)
-
     const command = new InvokeCommand(params)
 
     this.lambdaClient.send(command).then(
       (data) => {
-        // console.log('data', data)
         if (200 === data.StatusCode) {
           let json = Buffer.from(data.Payload).toString()
-          // console.log('json', json)
           const res = JSON.parse(json)
-          // console.log('res', res)
           const body = JSON.parse(res.body)
-          // console.log('body', body)
 
           let out = ''
 
@@ -103,8 +96,6 @@ class LambdaInvokeStream extends Duplex {
   }
 
   _read(size) {
-    // console.log('read', this.processing, this.buffer)
-
     if (this.processing) {
       return
     }
@@ -123,8 +114,6 @@ class LambdaInvokeStream extends Duplex {
 }
 
 module.exports = function makeProtocol(spec) {
-  // console.log('MP AWS', spec)
-
   let duplex = null
 
   const service = spec.url.hostname
@@ -143,12 +132,9 @@ module.exports = function makeProtocol(spec) {
     setImmediate(() => {
       duplex.emit('connect')
     })
-
-    // console.log(duplex)
   } else {
     throw new Error('Unknown AWS service: ' + service)
   }
 
-  // console.log('PAWS', !!duplex)
   return duplex
 }

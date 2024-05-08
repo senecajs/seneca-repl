@@ -51,7 +51,6 @@ const ListCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
 
   let parts = argstr.trim().split(/\s+/)
-  // console.log('PARTS', parts)
 
   if (0 < parts.length) {
     if (parts[0].match(/^plugins?$/)) {
@@ -68,9 +67,7 @@ const FindCmd: Cmd = (spec: CmdSpec) => {
   let narrow = context.seneca.util.Jsonic(argstr)
 
   if ('string' === typeof narrow) {
-    // console.log('FP', narrow)
     let plugin = context.seneca.find_plugin(narrow)
-    // console.log('FP p', plugin)
     return respond(null, plugin)
   }
 
@@ -306,7 +303,6 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
 
   let args = context.seneca.util.Jsonic(argstr) || []
   args = Array.isArray(args) ? args : [args]
-  // console.log('DA', args, context.delegate)
 
   let name = args[0]
   let fromDelegateName = args[1]

@@ -121,8 +121,6 @@ function repl(this: any, options: any) {
 
     let replInst: ReplInstance = replMap[replID]
 
-    // console.log('UR', replInst)
-
     if (replInst && 'open' === replInst.status) {
       return reply({
         ok: true,
@@ -201,7 +199,6 @@ function repl(this: any, options: any) {
 
     replInst.output.on('data', listener)
 
-    // console.log('SC write', cmd)
     replInst.input.write(cmd)
   }
 
@@ -449,7 +446,6 @@ class ReplInstance {
   }
 
   evaluate(cmdtext: any, context: any, filename: any, origRespond: any) {
-    // console.log('EVAL', cmdtext)
     const seneca = this.seneca
     const repl = this.repl
     const options = this.options
@@ -478,8 +474,6 @@ class ReplInstance {
         cmd_history.push(cmdtext)
       }
 
-      // console.log('AAA', cmdtext)
-
       if (alias[cmdtext]) {
         cmdtext = alias[cmdtext]
       }
@@ -507,7 +501,6 @@ class ReplInstance {
       }
 
       function execute_action(cmdtext: string) {
-        // console.log('EA', cmdtext)
         try {
           let msg = cmdtext
 
@@ -521,8 +514,6 @@ class ReplInstance {
 
           let notmsg =
             null == args || Array.isArray(args) || 'object' !== typeof args
-
-          // console.log('ARGS', args, notmsg)
 
           if (notmsg) {
             return false
@@ -567,7 +558,6 @@ class ReplInstance {
       }
 
       function execute_script(cmdtext: any) {
-        // console.log('EVAL SCRIPT', cmdtext)
         try {
           let script = (Vm as any).createScript(cmdtext, {
             filename: filename,

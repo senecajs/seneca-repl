@@ -87,7 +87,6 @@ function repl(options) {
         let seneca = this;
         let replID = msg.id || options.host + '~' + options.port;
         let replInst = replMap[replID];
-        // console.log('UR', replInst)
         if (replInst && 'open' === replInst.status) {
             return reply({
                 ok: true,
@@ -151,7 +150,6 @@ function repl(options) {
             out.push(chunk.toString());
         };
         replInst.output.on('data', listener);
-        // console.log('SC write', cmd)
         replInst.input.write(cmd);
     }
     function add_cmd(msg, reply) {
@@ -354,7 +352,6 @@ class ReplInstance {
         }
     }
     evaluate(cmdtext, context, filename, origRespond) {
-        // console.log('EVAL', cmdtext)
         const seneca = this.seneca;
         const repl = this.repl;
         const options = this.options;
@@ -378,7 +375,6 @@ class ReplInstance {
             else {
                 cmd_history.push(cmdtext);
             }
-            // console.log('AAA', cmdtext)
             if (alias[cmdtext]) {
                 cmdtext = alias[cmdtext];
             }
@@ -399,7 +395,6 @@ class ReplInstance {
                 //})
             }
             function execute_action(cmdtext) {
-                // console.log('EA', cmdtext)
                 try {
                     let msg = cmdtext;
                     let m = msg.split(/\s*~>\s*/);
@@ -409,7 +404,6 @@ class ReplInstance {
                     let injected_msg = Inks(msg, context);
                     let args = seneca.util.Jsonic(injected_msg);
                     let notmsg = null == args || Array.isArray(args) || 'object' !== typeof args;
-                    // console.log('ARGS', args, notmsg)
                     if (notmsg) {
                         return false;
                     }
@@ -450,7 +444,6 @@ class ReplInstance {
                 }
             }
             function execute_script(cmdtext) {
-                // console.log('EVAL SCRIPT', cmdtext)
                 try {
                     let script = node_vm_1.default.createScript(cmdtext, {
                         filename: filename,
