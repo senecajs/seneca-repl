@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/* Copyright (c) 2019-2023 voxgig and other contributors, MIT License */
+/* Copyright (c) 2019-2024 voxgig and other contributors, MIT License */
 'use strict'
 
 const OS = require('node:os')
@@ -12,8 +12,18 @@ const Http = require('node:http')
 const Https = require('node:https')
 const { Duplex } = require('node:stream')
 
+const { minify_sync } = require('terser')
+
+const JP = (arg) => JSON.parse(arg)
+const JS = (a0, a1) => JSON.stringify(a0, a1)
+
+const makesearchprompt = (search) => 'search: [' + search + '] '
+const DISTANCE_TO_SEARCH_BOX = 2
+
 const state = {
-  connection: {},
+  connection: {
+    mode: 'cmd',
+  },
 }
 
 let host = '127.0.0.1'
@@ -51,7 +61,7 @@ try {
   id = url.searchParams.get('id')
   id = null == id || '' === id ? 'web' : id
 } catch (e) {
-  console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
+  spec.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
 }
 
@@ -176,10 +186,10 @@ function reconnect(spec) {
           reconnect(spec)
         }, spec.delay)
       } else if (result.err) {
-        console.log('# CONNECTION ERROR:', result.err)
+        spec.log('# CONNECTION ERROR:', result.err)
       }
     } else {
-      console.log('# CONNECTION ERROR: no-result')
+      spec.log('# CONNECTION ERROR: no-result')
       process.exit(1)
     }
   })
@@ -233,6 +243,7 @@ function operate(spec, done) {
     )
   })
 
+  /*
   const responseChunks = []
 
   state.connection.sock.on('data', function (chunk) {
@@ -247,6 +258,22 @@ function operate(spec, done) {
       handleResponse(received)
     } else if (0 < str.length) {
       responseChunks.push(str)
+    }
+  })
+  */
+
+  const responseChunks = []
+
+  state.connection.sock.on('data', function (chunk) {
+    if (0 < chunk.length && 0 === chunk[chunk.length - 1]) {
+      responseChunks.push(chunk.slice(0, chunk.length - 1))
+      let received = responseChunks.flat()
+      const str = received.toString('utf8')
+      responseChunks.length = 0
+      spec.first = false
+      handleResponse(str)
+    } else if (0 < chunk.length) {
+      responseChunks.push(chunk)
     }
   })
 
@@ -266,9 +293,9 @@ function operate(spec, done) {
           received = received.startsWith('# ERROR')
             ? received
             : '# ERROR: ' + received
-          console.log(received)
+          spec.log(received)
         } else {
-          console.log('# HELLO ERROR: ', err.message, 'hello:', received)
+          spec.log('# HELLO ERROR: ', err.message, 'hello:', received)
         }
 
         process.exit(1)
@@ -279,18 +306,114 @@ function operate(spec, done) {
       spec.log('Connected to Seneca:', state.connection.remote)
 
       if (null == state.connection.readline) {
+        Readline.emitKeypressEvents(process.stdin)
+
         state.connection.readline = Readline.createInterface({
           input: process.stdin,
           output: process.stdout,
-          // prompt: 'QQQ',
+          completer: (linep) => {
+            return [history.filter((n) => n.startsWith(linep)), linep]
+          },
           terminal: true,
           history,
           historySize: Number.MAX_SAFE_INTEGER,
           prompt: state.connection.prompt,
         })
 
+        process.stdin.on('keypress', function (key, spec) {
+          if ('g' == spec.name && spec.ctrl) {
+            Readline.cursorTo(process.stdin, 0)
+            Readline.clearLine(process.stdin, 1)
+            state.connection.readline.setPrompt(state.connection.prompt)
+            state.connection.readline.prompt()
+            state.connection.found = ''
+            state.connection.mode = 'cmd'
+            state.connection.readline.resume()
+            return
+          }
+
+          if ('search' === state.connection.mode) {
+            if (spec.name === 'backspace') {
+              state.connection.search = state.connection.search.slice(0, -1)
+            } else if (spec.ctrl && spec.name === 'u') {
+              state.connection.search = ''
+            } else if (key) {
+              // NOTE: sometimes `key` is undefined (e.g. when an arrow-key is pressed)
+              let cc = key.charCodeAt(0)
+              if (31 < cc || 8 === cc) {
+                if (127 === cc || 8 === cc) {
+                  // state.connection.search =
+                  //  state.connection.search.substring(0,state.connection.search.length-1)
+                  // state.connection.offset = 0
+                } else {
+                  state.connection.search += key
+                }
+              } else if ('r' == spec.name && spec.ctrl) {
+                state.connection.offset++
+              }
+            }
+
+            let search = state.connection.search
+
+            Readline.cursorTo(process.stdout, 0, () => {
+              Readline.clearLine(process.stdout, 0)
+              state.connection.readline.line = ''
+
+              // state.connection.readline.write(searchprompt)
+
+              state.connection.found = ''
+              if ('' != search) {
+                let offset = state.connection.offset
+                for (let i = 0; i < history.length; i++) {
+                  if (history[i].includes(search)) {
+                    if (0 === offset) {
+                      state.connection.readline.write(
+                        makesearchprompt(search) + history[i],
+                      )
+                      state.connection.found = history[i]
+                      Readline.moveCursor(
+                        process.stdout,
+                        -(DISTANCE_TO_SEARCH_BOX + history[i].length),
+                      )
+                      break
+                    } else {
+                      offset--
+                    }
+                  }
+                }
+              }
+
+              if ('' === state.connection.found) {
+                state.connection.readline.write(makesearchprompt(search))
+                Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
+              }
+            })
+          } else if ('r' == spec.name && spec.ctrl) {
+            state.connection.readline.pause()
+            state.connection.readline.setPrompt('search: [] ')
+            state.connection.readline.prompt()
+            Readline.moveCursor(process.stdout, -DISTANCE_TO_SEARCH_BOX)
+            state.connection.mode = 'search'
+            state.connection.search = ''
+            state.connection.offset = 0
+          }
+        })
+
         state.connection.readline
           .on('line', (line) => {
+            if ('search' === state.connection.mode) {
+              history.shift() // NOTE: here we are removing the revsearch prompt from the history
+
+              Readline.cursorTo(process.stdin, 0)
+              Readline.clearLine(process.stdin, 1)
+              state.connection.readline.setPrompt(state.connection.prompt)
+              state.connection.readline.prompt()
+              state.connection.mode = 'cmd'
+              state.connection.readline.write(state.connection.found)
+              state.connection.readline.resume()
+              return
+            }
+
             if (state.connection.closed) {
               return setImmediate(() => {
                 operate(spec)
@@ -301,19 +424,26 @@ function operate(spec, done) {
               process.exit(0)
             }
 
-            if (null != historyFile) {
-              try {
-                FS.appendFileSync(historyFile, line + OS.EOL)
-              } catch (e) {
-                // Don't save history
-              }
-            }
+            const send = buildSend(line, state)
 
-            state.connection.sock.write(line + '\n')
-            // state.connection.readline.prompt()
+            if (send.ok) {
+              if (null != historyFile) {
+                try {
+                  FS.appendFileSync(historyFile, line + OS.EOL)
+                } catch (e) {
+                  // Don't save history
+                }
+              }
+
+              prepareSend(send, state)
+
+              state.connection.sock.write(send.line + '\n')
+            } else {
+              spec.log('# ERROR:', send.errmsg)
+            }
           })
           .on('error', (err) => {
-            console.log('# READLINE ERROR:', err)
+            spec.log('# READLINE ERROR:', err)
             process.exit(1)
           })
           .on('close', () => {
@@ -326,11 +456,206 @@ function operate(spec, done) {
       state.connection.readline.prompt()
     } else {
       received = received.replace(/\n+$/, '\n')
-      spec.log(received)
+
+      if ('data' === state.connection.mode) {
+        state.connection.mode = 'cmd'
+        handleData(state, received)
+      } else {
+        spec.log(received)
+      }
 
       state.connection.readline.prompt()
     }
   }
+}
+
+function handleData(state, received) {
+  const savefile = state.connection.savefile
+  state.connection.savefile = null
+
+  let jsonstr = received.trim().replace(/[\r\n]/g, '')
+  jsonstr = jsonstr.substring(1, jsonstr.length - 1)
+
+  let data = null
+  try {
+    data = JSON.parse(jsonstr)
+  } catch (err) {
+    spec.log('# ERROR: invalid JSON recieved: ' + err.message)
+  }
+
+  const localjsonstr = JSON.stringify(data)
+
+  if (null == savefile) {
+    spec.log(localjsonstr)
+  } else {
+    try {
+      FS.writeFileSync(savefile, localjsonstr)
+    } catch (err) {
+      spec.log(
+        '# ERROR: unable to save JSON data to ' + savefile + ': ' + err.message,
+      )
+    }
+  }
+}
+
+function buildSend(origline, state) {
+  let line = origline
+  let out = { ok: false, line }
+
+  const directiveRE = /<%(.*?)%>/g
+  const parts = []
+  let m = null
+  let last = 0
+  while ((m = directiveRE.exec(origline))) {
+    parts.push(origline.substring(last, m.index))
+    last = directiveRE.lastIndex
+
+    let dirout = expr({ src: m[1], fn: DirectiveMap, fixed: DirectiveFixed })
+    parts.push(dirout)
+  }
+  parts.push(origline.substring(last, origline.length))
+
+  out.line = parts.join('')
+  out.ok = true
+
+  return out
+}
+
+function prepareSend(send, state) {
+  let m = null
+
+  // > data varname local-file
+  if ((m = send.line.match(/^\s*data\s+([^\s]+)(\s+(.*))?/))) {
+    state.connection.mode = 'data'
+    state.connection.savefile = m[3]
+  }
+}
+
+const DirectiveFixed = {
+  VXGACT:
+    /.*module\.exports\s*=\s*function\s+make_\w+_\w+\s*\(.*?\)\s*\{.*?return\s*(.*)\}[^}]*$/s,
+}
+
+const DirectiveMap = {
+  Load: (path) => {
+    let fullpath = Path.isAbsolute(path) ? path : Path.join(process.cwd(), path)
+    if (FS.existsSync(fullpath)) {
+      let text = FS.readFileSync(fullpath).toString()
+      return JS(text)
+    } else {
+      throw new Error('Unable to read file: ' + fullpath)
+    }
+  },
+  Match: (jstr, re, mI) => {
+    let txt = '' + JP(jstr)
+    let m = re.exec(txt)
+    let out = m ? (null == mI ? m[0] : m[mI]) : ''
+    out = JS(null == out ? '' : '' + out)
+    return out
+  },
+  VxgAction: (pat, act, defstr) => {
+    let def = minify_sync(JP(defstr), {
+      mangle: false,
+    }).code
+    let func = def.startsWith('async')
+      ? 'function(msg,reply,meta){const actfunc=' +
+        def +
+        ';actfunc.call(this, msg, meta).then(reply).catch(reply)}'
+      : def
+    return `seneca.find('${pat}',{exact:true,action:'${act}'}).func=` + func
+  },
+}
+
+// TODO: unify with Gubu version
+/*
+  spec: {
+  src: string
+  fn: {}
+  fixed: {}
+  err: { prefix: '' }
+  }
+  state: {
+  tokens?: string[]
+  i?: number
+  val: any
+
+  }
+  */
+function expr(spec, exprState) {
+  exprState = exprState || { i: 0, val: undefined }
+  let top = false
+
+  if (null == exprState.tokens) {
+    top = true
+    exprState.tokens = []
+    let tre =
+      /\s*,?\s*([)(\.]|"(\\.|[^"\\])*"|\/(\\.|[^\/\\])*\/[a-z]?|[^)(,\s]+)\s*/g
+    let t = null
+    while ((t = tre.exec(spec.src))) {
+      exprState.tokens.push(t[1])
+    }
+  }
+
+  exprState.i = exprState.i || 0
+
+  let head = exprState.tokens[exprState.i]
+
+  let fn = spec.fn[head]
+
+  if (')' === exprState.tokens[exprState.i]) {
+    exprState.i++
+    return exprState.val
+  }
+
+  exprState.i++
+
+  if (null == fn) {
+    let m = null
+    try {
+      let val = spec.fixed[head]
+      if (val) {
+        return val
+      } else if ('undefined' === head) {
+        return undefined
+      } else if ('NaN' === head) {
+        return NaN
+      } else if ((m = head.match(/^\/(.+)\/([a-z])?$/))) {
+        // return new RegExp(head.substring(1, head.length - 1))
+        let re = new RegExp(m[1], m[2])
+        return re
+      } else {
+        return JP(head)
+      }
+    } catch (je) {
+      throw new SyntaxError(
+        `${spec.err?.prefix || ''}` +
+          `Unexpected token ${head} in expression ${spec.src}: ${je.message}`,
+      )
+    }
+  }
+
+  if ('(' === exprState.tokens[exprState.i]) {
+    exprState.i++
+  }
+
+  let args = []
+  let t = null
+  while (null != (t = exprState.tokens[exprState.i]) && ')' !== t) {
+    let ev = expr(spec, exprState)
+    args.push(ev)
+  }
+  exprState.i++
+
+  exprState.val = fn.call(spec.val, ...args)
+
+  if ('.' === exprState.tokens[exprState.i]) {
+    exprState.i++
+    return expr(exprState)
+  } else if (top && exprState.i < exprState.tokens.length) {
+    return expr(exprState)
+  }
+
+  return exprState.val
 }
 
 // Create a duplex stream to operate the REPL
@@ -344,10 +669,9 @@ function connect(spec) {
     duplex = makeHttpDuplex(spec)
   } else {
     try {
-      const makeProtocol = require(__dirname +
-        '/protocol-' +
-        protocol.replace(/[^a-z0-9-_]/g, '') +
-        '.js')
+      const makeProtocol = require(
+        __dirname + '/protocol-' + protocol.replace(/[^a-z0-9-_]/g, '') + '.js',
+      )
       return makeProtocol(spec)
     } catch (e) {
       throw new Error(

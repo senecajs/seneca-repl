@@ -1,6 +1,7 @@
-/* Copyright © 2023 Richard Rodger and other contributors, MIT License. */
+/* Copyright © 2023-2024 Richard Rodger and other contributors, MIT License. */
 
 import Hoek from '@hapi/hoek'
+import JsonStringify from 'json-stringify-safe'
 
 import type { CmdSpec, Cmd } from './types'
 
@@ -50,7 +51,6 @@ const ListCmd: Cmd = (spec: CmdSpec) => {
   const { context, argstr, respond } = spec
 
   let parts = argstr.trim().split(/\s+/)
-  // console.log('PARTS', parts)
 
   if (0 < parts.length) {
     if (parts[0].match(/^plugins?$/)) {
@@ -67,9 +67,7 @@ const FindCmd: Cmd = (spec: CmdSpec) => {
   let narrow = context.seneca.util.Jsonic(argstr)
 
   if ('string' === typeof narrow) {
-    // console.log('FP', narrow)
     let plugin = context.seneca.find_plugin(narrow)
-    // console.log('FP p', plugin)
     return respond(null, plugin)
   }
 
@@ -104,7 +102,7 @@ const PriorCmd: Cmd = (spec: CmdSpec) => {
 
 const HistoryCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
-  return respond(null, context.history.join('\n'))
+  return respond(null, context.history)
 }
 
 const LogCmd: Cmd = (spec: CmdSpec) => {
@@ -169,6 +167,27 @@ const TraceCmd: Cmd = (spec: CmdSpec) => {
 const HelpCmd: Cmd = (spec: CmdSpec) => {
   const { context, respond } = spec
   return respond(null, context.cmdMap)
+}
+
+const DataCmd: Cmd = (spec: CmdSpec) => {
+  const { context, argstr, respond } = spec
+  let m = argstr.match(/^\s*([^\s]+)/)
+
+  if (m) {
+    let varname = m[1]
+    let data = context[varname]
+
+    try {
+      let json = JsonStringify(data)
+      return respond(null, json, { data: true })
+    } catch (err: any) {
+      return respond(
+        'ERROR: JSON stringify failed for ' + varname + ': ' + err.message,
+      )
+    }
+  } else {
+    return respond('ERROR: expected: data <var> [local-file]')
+  }
 }
 
 const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/
@@ -250,7 +269,7 @@ const Remove$Cmd: Cmd = (spec: CmdSpec) => {
     let seneca = context.seneca
     let query = seneca.util.Jsonic(qstr)
 
-    seneca.entity(canon).load$(query, function (err: any, out: any) {
+    seneca.entity(canon).remove$(query, function (err: any, out: any) {
       if (err) {
         return respond('ERROR: entity remove$: ', err.message)
       }
@@ -279,6 +298,61 @@ const Entity$Cmd: Cmd = (spec: CmdSpec) => {
   }
 }
 
+const DelegateCmd: Cmd = (spec: CmdSpec) => {
+  const { context, argstr, respond } = spec
+
+  let args = context.seneca.util.Jsonic(argstr) || []
+  args = Array.isArray(args) ? args : [args]
+
+  let name = args[0]
+  let fromDelegateName = args[1]
+  let fixedargs = args[2]
+  let fixedmeta = args[3]
+
+  if ('string' != typeof fromDelegateName) {
+    fromDelegateName = null
+    fixedargs = args[1]
+    fixedmeta = args[2]
+  }
+
+  let delegate = context.delegate[name]
+
+  // Just name.
+  if (null == fixedargs && null == fixedmeta) {
+    if (null == delegate) {
+      return respond('ERROR: delegate not found: ' + name)
+    }
+  }
+
+  // Create new.
+  else {
+    if (({ root$: 1, repl$: 1 } as any)[name]) {
+      return respond('ERROR: delegate name reserved: ' + name)
+    } else if (null != delegate) {
+      return respond('ERROR: delegate already exists: ' + name)
+    } else if (null == name || '' == name) {
+      context.s = context.seneca = context.delegate.repl$
+    } else {
+      let fromDelegate = context.seneca
+
+      if (null != fromDelegateName) {
+        fromDelegate = context.delegate[fromDelegateName]
+        if (null == fromDelegate) {
+          return respond('ERROR: unknown delegate: ' + fromDelegateName)
+        }
+      }
+
+      delegate = fromDelegate.delegate(fixedargs, fixedmeta)
+      delegate.did = delegate.did + '~' + name
+      context.delegate[name] = delegate
+    }
+  }
+
+  context.s = context.seneca = delegate
+
+  respond(null, delegate)
+}
+
 const Cmds: Record<string, Cmd> = {
   HelloCmd,
   GetCmd,
@@ -294,6 +368,8 @@ const Cmds: Record<string, Cmd> = {
   AliasCmd,
   TraceCmd,
   HelpCmd,
+  DelegateCmd,
+  DataCmd,
 
   List$Cmd,
   Load$Cmd,

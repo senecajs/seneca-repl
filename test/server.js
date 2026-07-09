@@ -7,14 +7,26 @@ function rep(n, c) {
   return b.join('')
 }
 
-require('seneca')
+const Seneca = require('seneca')
+
+Seneca({ legacy: false })
+  .test('print')
   .use('promisify')
   .use('..', { port: 20202 })
   .use('entity', {
-    hide: {
-      '-/-/foo': ['c'],
-    },
+    // hide: {
+    //   '-/-/foo': ['c'],
+    // },
   })
+  .use('user')
+  .use('gateway-auth')
+
+  .use('owner', {
+    ownerprop: 'principal.user',
+    fields: ['id:owner_id'],
+    annotate: ['sys:entity'],
+  })
+
   .use(function foo() {
     this.message('make:foo', async function (msg) {
       return await this.entity('foo').data$(msg.foo).save$()
@@ -44,6 +56,8 @@ require('seneca')
           .save$()
       })
   })
+  .act('sys:user,register:user,nick:alice,email:alice@example.com')
+  .act('sys:user,register:user,nick:bob,email:bob@example.com')
   .ready(async function () {
     console.log(await this.entity('foo').list$())
   })

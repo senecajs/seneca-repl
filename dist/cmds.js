@@ -1,11 +1,12 @@
 "use strict";
-/* Copyright © 2023 Richard Rodger and other contributors, MIT License. */
+/* Copyright © 2023-2024 Richard Rodger and other contributors, MIT License. */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cmds = void 0;
 const hoek_1 = __importDefault(require("@hapi/hoek"));
+const json_stringify_safe_1 = __importDefault(require("json-stringify-safe"));
 const utils_1 = require("./utils");
 // NOTE: The function name prefix (lowercased) is the command name.
 const HelloCmd = (spec) => {
@@ -44,7 +45,6 @@ const PlainCmd = (spec) => {
 const ListCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let parts = argstr.trim().split(/\s+/);
-    // console.log('PARTS', parts)
     if (0 < parts.length) {
         if (parts[0].match(/^plugins?$/)) {
             return respond(null, Object.keys(context.seneca.list_plugins()));
@@ -57,9 +57,7 @@ const FindCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let narrow = context.seneca.util.Jsonic(argstr);
     if ('string' === typeof narrow) {
-        // console.log('FP', narrow)
         let plugin = context.seneca.find_plugin(narrow);
-        // console.log('FP p', plugin)
         return respond(null, plugin);
     }
     respond(null, context.seneca.find(narrow));
@@ -89,7 +87,7 @@ const PriorCmd = (spec) => {
 };
 const HistoryCmd = (spec) => {
     const { context, respond } = spec;
-    return respond(null, context.history.join('\n'));
+    return respond(null, context.history);
 };
 const LogCmd = (spec) => {
     const { context, argstr, respond } = spec;
@@ -137,6 +135,24 @@ const TraceCmd = (spec) => {
 const HelpCmd = (spec) => {
     const { context, respond } = spec;
     return respond(null, context.cmdMap);
+};
+const DataCmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let m = argstr.match(/^\s*([^\s]+)/);
+    if (m) {
+        let varname = m[1];
+        let data = context[varname];
+        try {
+            let json = (0, json_stringify_safe_1.default)(data);
+            return respond(null, json, { data: true });
+        }
+        catch (err) {
+            return respond('ERROR: JSON stringify failed for ' + varname + ': ' + err.message);
+        }
+    }
+    else {
+        return respond('ERROR: expected: data <var> [local-file]');
+    }
 };
 const CanonQueryRE = /^\s*(([^\s\/]+)\/?([^\s\/]+)?\/?([^\s\/]+)?)(\s+.+)?$/;
 const List$Cmd = (spec) => {
@@ -204,7 +220,7 @@ const Remove$Cmd = (spec) => {
         let qstr = m[5];
         let seneca = context.seneca;
         let query = seneca.util.Jsonic(qstr);
-        seneca.entity(canon).load$(query, function (err, out) {
+        seneca.entity(canon).remove$(query, function (err, out) {
             if (err) {
                 return respond('ERROR: entity remove$: ', err.message);
             }
@@ -230,6 +246,53 @@ const Entity$Cmd = (spec) => {
         return respond('ERROR: expected: entity$ [[zone/]base/]name [query]');
     }
 };
+const DelegateCmd = (spec) => {
+    const { context, argstr, respond } = spec;
+    let args = context.seneca.util.Jsonic(argstr) || [];
+    args = Array.isArray(args) ? args : [args];
+    let name = args[0];
+    let fromDelegateName = args[1];
+    let fixedargs = args[2];
+    let fixedmeta = args[3];
+    if ('string' != typeof fromDelegateName) {
+        fromDelegateName = null;
+        fixedargs = args[1];
+        fixedmeta = args[2];
+    }
+    let delegate = context.delegate[name];
+    // Just name.
+    if (null == fixedargs && null == fixedmeta) {
+        if (null == delegate) {
+            return respond('ERROR: delegate not found: ' + name);
+        }
+    }
+    // Create new.
+    else {
+        if ({ root$: 1, repl$: 1 }[name]) {
+            return respond('ERROR: delegate name reserved: ' + name);
+        }
+        else if (null != delegate) {
+            return respond('ERROR: delegate already exists: ' + name);
+        }
+        else if (null == name || '' == name) {
+            context.s = context.seneca = context.delegate.repl$;
+        }
+        else {
+            let fromDelegate = context.seneca;
+            if (null != fromDelegateName) {
+                fromDelegate = context.delegate[fromDelegateName];
+                if (null == fromDelegate) {
+                    return respond('ERROR: unknown delegate: ' + fromDelegateName);
+                }
+            }
+            delegate = fromDelegate.delegate(fixedargs, fixedmeta);
+            delegate.did = delegate.did + '~' + name;
+            context.delegate[name] = delegate;
+        }
+    }
+    context.s = context.seneca = delegate;
+    respond(null, delegate);
+};
 const Cmds = {
     HelloCmd,
     GetCmd,
@@ -245,6 +308,8 @@ const Cmds = {
     AliasCmd,
     TraceCmd,
     HelpCmd,
+    DelegateCmd,
+    DataCmd,
     List$Cmd,
     Load$Cmd,
     Save$Cmd,
