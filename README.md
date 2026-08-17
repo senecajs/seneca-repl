@@ -1,34 +1,10 @@
-![Seneca REPL](http://senecajs.org/files/assets/seneca-logo.png)
+![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
+> A [Seneca.js][] plugin
 
-> _Seneca REPL_ is a plugin for [Seneca](http://senecajs.org)
-
-
-A plugin that provides a REPL (Read-Execute-Print-Loop) for Seneca
-instances, very much like the standard Node.js command line REPL, with
-a some extra Seneca convenience commands.
-
-
-[![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
-[![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
-[![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=main)](https://coveralls.io/github/senecajs/seneca-repl?branch=main)
-[![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-repl/badge.svg)](https://snyk.io/test/github/senecajs/seneca-repl)
-[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/25211/branches/785261/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=25211&bid=785261)
-[![Maintainability](https://api.codeclimate.com/v1/badges/17b0bd2f87252d0dcfc5/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
+# @seneca/repl
 
 | ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
 |---|---|
-
-
-
-### Seneca compatibility
-Supports Seneca versions **3.x** and higher.
-
-
-## Recent Articles
-
-* [Version 6 Plan](doc/version-6-pub.md)
-* [Version 6 Release](doc/version-6-release-pub.md)
-
 
 ## Install
 
@@ -56,8 +32,7 @@ use it to connect to your lambda function.
 $ npm i -g @aws-sdk/client-lambda
 ```
 
-
-## Usage
+## Quick Example
 
 Add the REPL as a plugin to your Seneca instance. By default the
 plugin will listen on localhost port 30303.
@@ -196,68 +171,24 @@ $ seneca-repl http://localhost:8888/seneca-repl?id=web
 
 By default, HTTP URLs with use `web` as the identifier.
 
+## More Examples
 
-# REPL over AWS Lambda Invoke
+See [test/](test/) for usage examples.
 
-To expose a REPL from an AWS Lambda function using Seneca, use the set
-up code for the HTTP example in the Lambda itself.
+## Motivation
 
-For the REPL client, you will need to install the
-[@aws-sdk/client-lambda](https://www.npmjs.com/package/@aws-sdk/client-lambda)
-package, and correctly configure your AWS access using the
-`$AWS_PROFILE` environment variable.
+Provides an interactive REPL (Read-Eval-Print Loop) for Seneca microservices, allowing you to inspect and call action patterns at runtime.
 
-Connect to your Lambda function REPL using:
+## Support
 
-```
-seneca-repl "aws://lambda/FUNCTION?region=REGION&id=invoke"
-```
+If you're using this module and need help, you can:
 
-where `FUNCTION` is the name of the Lambda function,`REGION` is the
-AWS region, such as `us-east-1` (the default). The default REPL id
-value is _invoke_. NOTE: make sure to quote or escape the `&`.
+- Post a [github issue][]
+- Tweet to [@senecajs][]
 
+## API
 
-This mechanism uses AWS Lambda invocation mechanism and thus relies on
-AWS for security. Special care should be taken with Lambdas that are
-externally exposed to prevent external requests from calling the
-Seneca REPL messages.
-
-> **WARNING**
-> This is a security risk. Your app will need to apply additional
-> constraints to prevent arbitrary message submission via the REPL.
-
-This can be useful to debug build or staging systems, but is **NOT**
-recommended for production, unless used with specifically access
-controlled Lambda functions.
-
-
-## Interactive Interface
-
-
-The `seneca-repl` command provides a convenient REPL interface
-including line editing and history. In remote settings you'll want
-to create an SSH tunnel or similar for this purpose.
-
-
-Alternatively you can telnet to the port:
-
-```
-$ telnet localhost 30303
-```
-
-Replace `localhost` if remote with the address of the remote system.
-
-For more comfortable
-experience with working cursor keys, use
-[rlwrap](https://github.com/hanslub42/rlwrap)
-
-```
-$ rlwrap telnet localhost 30303
-```
-
-
-## Commands
+### Commands
 
 The repl evaluates JavaScript directly:
 
@@ -349,8 +280,7 @@ $ seneca-repl localhost?project=bar # separate history for bar server
 
 <!--START:options-->
 
-
-## Options
+### Options
 
 * `test` : boolean <i><small>false</small></i>
 
@@ -375,73 +305,30 @@ seneca.use('repl', { name: value, ... })
 
 <!--START:action-list-->
 
-
-## Action Patterns
-
-* [add:cmd,sys:repl](#-addcmdsysrepl-)
-* [echo:true,sys:repl](#-echotruesysrepl-)
-* [send:cmd,sys:repl](#-sendcmdsysrepl-)
-* [sys:repl,use:repl](#-sysrepluserepl-)
-
-
-<!--END:action-list-->
-
-<!--START:action-desc-->
-
-
-## Action Descriptions
-
-### &laquo; `add:cmd,sys:repl` &raquo;
-
-Add a REPL command dynamically
-
-
-
-----------
-### &laquo; `echo:true,sys:repl` &raquo;
-
-No description provided.
-
-
-
-----------
-### &laquo; `send:cmd,sys:repl` &raquo;
-
-No description provided.
-
-
-
-----------
-### &laquo; `sys:repl,use:repl` &raquo;
-
-No description provided.
-
-
-
-----------
-
-
-<!--END:action-desc-->
-
-
-
 ## Contributing
-The [Senecajs org][] encourages open participation. If you feel you
-can help in any way, be it with documentation, examples, extra
-testing, or new features please get in touch.
 
-## Test
+The [Senecajs org][] encourages open participation. If you feel you can help in any way, be it with documentation, examples, extra testing, or new features please get in touch.
 
-To run tests, simply use npm:
+### Running tests
 
 ```sh
-> npm run test
+npm run test
 ```
 
-## License
-Copyright (c) 2015-2020, Richard Rodger and other contributors.
-Licensed under [MIT][].
+## Background
 
+Inspired by the Node.js REPL. See [Action Patterns](https://senecajs.org/docs/tutorials/understanding-data-entities.html) for usage.
+
+[![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
+[![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
+[![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=main)](https://coveralls.io/github/senecajs/seneca-repl?branch=main)
+[![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-repl/badge.svg)](https://snyk.io/test/github/senecajs/seneca-repl)
+[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/25211/branches/785261/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=25211&bid=785261)
+[![Maintainability](https://api.codeclimate.com/v1/badges/17b0bd2f87252d0dcfc5/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
+[@aws-sdk/client-lambda](https://www.npmjs.com/package/@aws-sdk/client-lambda)
+[rlwrap](https://github.com/hanslub42/rlwrap)
+[jsonic](https://github.com/rjrodger/jsonic) format (JSON, but not strict!):
+[
 [MIT]: ./LICENSE
 [Seneca.js]: https://www.npmjs.com/package/seneca
 [Senecajs org]: https://github.com/senecajs/
