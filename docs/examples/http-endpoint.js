@@ -43,7 +43,15 @@ async function start() {
     })
   })
 
-  await new Promise((resolve) => server.listen(8080, '127.0.0.1', resolve))
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject) // for example, port 8080 is in use
+      server.listen(8080, '127.0.0.1', resolve)
+    })
+  } catch (err) {
+    await seneca.close()
+    throw err
+  }
   console.log('REPL endpoint: http://127.0.0.1:8080/seneca-repl')
 
   return { seneca, server }

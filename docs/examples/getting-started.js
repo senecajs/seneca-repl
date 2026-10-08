@@ -51,10 +51,12 @@ function session(address, commands) {
     }
   })
 
+  // Close Seneca on every path: done, failed, or closed by the service.
   socket.on('error', (err) => {
     console.error('Connection failed:', err.message)
     finish()
   })
+  socket.on('close', finish)
 
   // seneca-repl sends hello first; the response describes the instance.
   socket.write('hello\n')
@@ -68,7 +70,10 @@ function session(address, commands) {
     }
   }
 
+  let finished = false
   function finish() {
+    if (finished) return
+    finished = true
     socket.destroy()
     seneca.close(() => console.log('closed'))
   }

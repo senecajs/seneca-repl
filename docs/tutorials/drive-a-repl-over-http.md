@@ -69,20 +69,30 @@ async function start() {
     })
   })
 
-  await new Promise((resolve) => server.listen(8080, '127.0.0.1', resolve))
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('error', reject) // for example, port 8080 is in use
+      server.listen(8080, '127.0.0.1', resolve)
+    })
+  } catch (err) {
+    await seneca.close()
+    throw err
+  }
   console.log('REPL endpoint: http://127.0.0.1:8080/seneca-repl')
 
   return { seneca, server }
 }
 ```
 
-Three things matter:
+Four things matter:
 
 * `listen: false` stops the plugin from opening its TCP port.
 * `sys:repl,use:repl` with `id: 'web'` creates the session. Commands
   for an id that has no session fail with the error `unknown-repl`.
 * The endpoint replies with the whole `sys:repl,send:cmd` result. The
   client prints `out` when `ok` is true, and `err` otherwise.
+* If the HTTP server cannot start, Seneca is closed before the error is
+  passed on, so the process does not keep running half started.
 
 `seneca.post` is the promise form of `seneca.act`, built into Seneca 4.
 
