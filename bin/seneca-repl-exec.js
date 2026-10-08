@@ -135,7 +135,7 @@ class RequestStream extends Duplex {
           })
 
           response.on('end', () => {
-            let res = null
+            let res
 
             try {
               res = JSON.parse(data)
@@ -275,7 +275,7 @@ function operate(spec, done) {
   state.connection.sock.on('data', function (chunk) {
     pending = Buffer.concat([pending, Buffer.from(chunk)])
 
-    let end = -1
+    let end
     while (-1 !== (end = pending.indexOf(0))) {
       const str = pending.subarray(0, end).toString('utf8')
       pending = pending.subarray(end + 1)

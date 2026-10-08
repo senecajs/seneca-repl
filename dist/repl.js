@@ -309,7 +309,7 @@ class ReplInstance {
         this.cmdMap = spec.cmdMap;
         this.server = spec.server;
         this.event = spec.event;
-        const options = (this.options = spec.options);
+        this.options = spec.options;
         const input = (this.input = spec.input);
         const output = (this.output = spec.output);
         const seneca = (this.seneca = spec.seneca);
