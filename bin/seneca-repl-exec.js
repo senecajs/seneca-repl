@@ -61,7 +61,7 @@ try {
   id = url.searchParams.get('id')
   id = null == id || '' === id ? 'web' : id
 } catch (e) {
-  spec.log('# CONNECTION URL ERROR: ', e.message, replAddr)
+  console.log('# CONNECTION URL ERROR: ', e.message, replAddr)
   process.exit(1)
 }
 
@@ -135,13 +135,27 @@ class RequestStream extends Duplex {
           })
 
           response.on('end', () => {
-            let res = JSON.parse(data)
+            let res = null
 
-            if (res.ok) {
+            try {
+              res = JSON.parse(data)
+            } catch (err) {
+              res = {
+                ok: false,
+                err:
+                  '# ERROR: invalid response (HTTP ' +
+                  response.statusCode +
+                  '): ' +
+                  err.message,
+              }
+            }
+
+            if (res && res.ok) {
               this.buffer.push(res.out + String.fromCharCode(0))
             } else {
               this.buffer.push(
-                (res.err || '# ERROR: unknown') + String.fromCharCode(0),
+                ((res && res.err) || '# ERROR: unknown') +
+                  String.fromCharCode(0),
               )
             }
 
@@ -153,6 +167,7 @@ class RequestStream extends Duplex {
       )
       .on('error', (err) => {
         this.buffer.push(`# ERROR: ${err}\n` + String.fromCharCode(0))
+        this.processing = false
         this._read()
         callback()
       })
@@ -199,11 +214,12 @@ function operate(spec, done) {
   state.connection.first = true
   state.connection.quit = false
 
-  // state.connection.sock = Net.connect(spec.port, spec.host)
   try {
     state.connection.sock = connect(spec)
   } catch (err) {
-    return done && done({ err })
+    // Unknown protocol, or the protocol module failed to load.
+    spec.log('# CONNECTION ERROR:', err.message)
+    process.exit(1)
   }
 
   state.connection.sock.on('connect', function () {
@@ -224,6 +240,14 @@ function operate(spec, done) {
     if (state.connection.open) {
       return done && done({ event: 'error', err })
     }
+
+    // The first connection attempt failed (for example, nothing is
+    // listening): report it. The client then exits, as it only
+    // reconnects once it has been connected.
+    if (spec.first) {
+      spec.log('# CONNECTION ERROR:', err.message)
+      process.exitCode = 1
+    }
   })
 
   state.connection.sock.on('close', function (err) {
@@ -243,37 +267,20 @@ function operate(spec, done) {
     )
   })
 
-  /*
-  const responseChunks = []
+  // Each response ends with a NUL byte. A response can arrive in several
+  // chunks, and one chunk can hold the end of a response and the start of
+  // the next one, so collect bytes and split on NUL.
+  let pending = Buffer.alloc(0)
 
   state.connection.sock.on('data', function (chunk) {
-    const str = chunk.toString('ascii')
+    pending = Buffer.concat([pending, Buffer.from(chunk)])
 
-    if (0 < str.length && 0 === str.charCodeAt(str.length - 1)) {
-      responseChunks.push(str)
-      let received = responseChunks.join('')
-      received = received.substring(0, received.length - 1)
-      responseChunks.length = 0
-      spec.first = false
-      handleResponse(received)
-    } else if (0 < str.length) {
-      responseChunks.push(str)
-    }
-  })
-  */
-
-  const responseChunks = []
-
-  state.connection.sock.on('data', function (chunk) {
-    if (0 < chunk.length && 0 === chunk[chunk.length - 1]) {
-      responseChunks.push(chunk.slice(0, chunk.length - 1))
-      let received = responseChunks.flat()
-      const str = received.toString('utf8')
-      responseChunks.length = 0
+    let end = -1
+    while (-1 !== (end = pending.indexOf(0))) {
+      const str = pending.subarray(0, end).toString('utf8')
+      pending = pending.subarray(end + 1)
       spec.first = false
       handleResponse(str)
-    } else if (0 < chunk.length) {
-      responseChunks.push(chunk)
     }
   })
 

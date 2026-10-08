@@ -11,7 +11,6 @@ const node_net_1 = __importDefault(require("node:net"));
 const node_repl_1 = __importDefault(require("node:repl"));
 const node_vm_1 = __importDefault(require("node:vm"));
 const node_util_1 = __importDefault(require("node:util"));
-const gubu_1 = require("gubu");
 const hoek_1 = __importDefault(require("@hapi/hoek"));
 const Inks = require('inks');
 const cmds_1 = require("./cmds");
@@ -32,56 +31,77 @@ function repl(options) {
     seneca.add('sys:repl,send:cmd', send_cmd);
     seneca.add('sys:repl,add:cmd', add_cmd);
     seneca.add('sys:repl,echo:true', (msg, reply) => reply(msg));
-    seneca.message('role:seneca,cmd:close', cmd_close);
-    seneca.prepare(async function () {
-        if (options.listen) {
-            server = node_net_1.default.createServer(function (socket) {
-                socket.on('error', function (err) {
-                    seneca.log.error('repl-socket', err);
-                });
-                // TODO: fix: should be socket address!!!
-                let address = server.address();
-                seneca.act('sys:repl,use:repl', {
-                    id: address.address + '~' + address.port,
-                    server,
-                    input: socket,
-                    output: socket,
-                });
-            });
-            server.listen(options.port, options.host);
-            let pres = new Promise((resolve, reject) => {
-                server.on('error', function (err) {
-                    seneca.log.error('repl-server', err);
-                    reject(err);
-                });
-                server.on('listening', function () {
-                    let address = server.address();
-                    export_address.port = address.port;
-                    export_address.host = address.address;
-                    export_address.family = address.family;
-                    seneca.log.info({
-                        kind: 'notice',
-                        notice: 'REPL listening on ' + address.address + ':' + address.port,
-                    });
-                    resolve();
-                });
-            });
-            return pres;
+    // Seneca 3 closes via role:seneca,cmd:close; Seneca 4 via sys:seneca,cmd:close.
+    const close_pattern = seneca.version.startsWith('3.')
+        ? 'role:seneca,cmd:close'
+        : 'sys:seneca,cmd:close';
+    seneca.add(close_pattern, cmd_close);
+    // Callback style init so that the plugin works on Seneca 3 without
+    // seneca-promisify, and on Seneca 4.
+    seneca.init(function (done) {
+        if (!options.listen) {
+            return done();
         }
+        let finished = false;
+        const finish = (err) => {
+            if (!finished) {
+                finished = true;
+                done(err);
+            }
+        };
+        server = node_net_1.default.createServer(function (socket) {
+            socket.on('error', function (err) {
+                seneca.log.error('repl-socket', err);
+            });
+            // Each connection gets its own REPL instance.
+            seneca.act('sys:repl,use:repl', {
+                id: socket.remoteAddress + '~' + socket.remotePort,
+                server,
+                input: socket,
+                output: socket,
+            });
+        });
+        server.on('error', function (err) {
+            seneca.log.error('repl-server', err);
+            finish(err);
+        });
+        server.on('listening', function () {
+            let address = server.address();
+            export_address.port = address.port;
+            export_address.host = address.address;
+            export_address.family = address.family;
+            seneca.log.info({
+                kind: 'notice',
+                notice: 'REPL listening on ' + address.address + ':' + address.port,
+            });
+            finish();
+        });
+        server.listen(options.port, options.host);
     });
-    async function cmd_close(msg) {
+    function cmd_close(msg, reply) {
         const seneca = this;
-        if (options.listen && server) {
-            server.close((err) => {
-                if (err) {
-                    seneca.log.error('repl-close-server', err);
-                }
-            });
-        }
+        close_repls()
+            .catch((err) => {
+            seneca.log.error('repl-close', err);
+        })
+            .then(() => {
+            seneca.prior(msg, reply);
+        });
+    }
+    async function close_repls() {
         for (let replInst of Object.values(replMap)) {
             await replInst.destroy();
         }
-        return seneca.prior(msg);
+        if (server && server.listening) {
+            await new Promise((resolve) => {
+                server.close((err) => {
+                    if (err) {
+                        seneca.log.error('repl-close-server', err);
+                    }
+                    resolve();
+                });
+            });
+        }
     }
     function use_repl(msg, reply) {
         let seneca = this;
@@ -110,7 +130,7 @@ function repl(options) {
                 if ('exit' === name) {
                     setTimeout(() => {
                         delete replMap[replID];
-                    }, 1111);
+                    }, 1111).unref();
                 }
             },
         });
@@ -124,7 +144,8 @@ function repl(options) {
     function send_cmd(msg, reply) {
         let seneca = this;
         // lookup repl by id, using steams to submit cmd and send back response
-        let replID = msg.id || options.host + ':' + options.port;
+        // Same default identifier as sys:repl,use:repl.
+        let replID = msg.id || options.host + '~' + options.port;
         let replInst = replMap[replID];
         if (null == replInst) {
             return seneca.fail('unknown-repl', { id: replID });
@@ -195,7 +216,7 @@ function make_intern() {
                         : context.inspekt(data).replace(/\n/g, ' ');
                     if (null == context.log_match ||
                         -1 < out.indexOf(context.log_match)) {
-                        context.socket.write('LOG: ' + out);
+                        context.output.write('LOG: ' + out + '\n');
                     }
                 }
             };
@@ -205,7 +226,7 @@ function make_intern() {
                 if (!context.act_trace)
                     return;
                 let actid = (meta || args.meta$ || {}).id;
-                context.socket.write('IN  ' +
+                context.output.write('IN  ' +
                     intern.fmt_index(context.act_index) +
                     ': ' +
                     context.inspekt(context.seneca.util.clean(args)) +
@@ -215,8 +236,6 @@ function make_intern() {
                     actdef.pattern +
                     ' ' +
                     actdef.id +
-                    ' ' +
-                    actdef.action +
                     ' ' +
                     (actdef.callpoint ? actdef.callpoint : '') +
                     '\n');
@@ -234,7 +253,7 @@ function make_intern() {
                         ? out
                         : context.inspekt(context.seneca.util.clean(out));
                 let cur_index = context.act_index_map[actid];
-                context.socket.write('OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n');
+                context.output.write('OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n');
             };
         },
         make_on_act_err: function (context) {
@@ -244,29 +263,39 @@ function make_intern() {
                 let actid = (meta || err.meta$ || {}).id;
                 if (actid) {
                     let cur_index = context.act_index_map[actid];
-                    context.socket.write('ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n');
+                    context.output.write('ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n');
                 }
             };
         },
     };
 }
-repl.defaults = {
-    listen: true,
-    port: 30303,
-    host: '127.0.0.1',
-    depth: 11,
-    alias: (0, gubu_1.Open)({
-        stats: 'seneca.stats()',
-        'stats full': 'seneca.stats({summary:false})',
-        // DEPRECATED
-        'stats/full': 'seneca.stats({summary:false})',
-        // TODO: there should be a seneca.tree()
-        // tree: 'seneca.root.private$.actrouter',
-    }),
-    inspect: (0, gubu_1.Open)({}),
-    cmds: (0, gubu_1.Open)({
-    // custom cmds
-    }),
+// Use the Gubu shape builders of the Seneca instance that loads the plugin,
+// so that the shape is always built by the Gubu version Seneca itself uses.
+repl.defaults = function (spec) {
+    const { Open } = spec.valid;
+    return {
+        listen: true,
+        port: 30303,
+        host: '127.0.0.1',
+        depth: 11,
+        alias: Open({
+            stats: 'seneca.stats()',
+            'stats full': 'seneca.stats({summary:false})',
+            // DEPRECATED
+            'stats/full': 'seneca.stats({summary:false})',
+            // TODO: there should be a seneca.tree()
+            // tree: 'seneca.root.private$.actrouter',
+        }),
+        inspect: Open({}),
+        cmds: Open({
+        // custom cmds
+        }),
+    };
+};
+repl.errors = {
+    'unknown-repl': 'REPL instance not found: <%=id%>.',
+    'invalid-status': 'REPL instance <%=id%> is not open: <%=status%>.',
+    'invalid-cmd': 'A REPL command needs a string name and a function action.',
 };
 repl.Cmds = cmds_1.Cmds;
 class ReplInstance {
@@ -296,6 +325,7 @@ class ReplInstance {
         }));
         repl.on('exit', () => {
             this.update('closed');
+            this.stop_log();
             input.end();
             output.end();
             this.event('exit');
@@ -304,14 +334,24 @@ class ReplInstance {
             seneca.log.error('repl', err);
             this.event('error');
         });
-        Object.assign(repl.context, {
+        // The .clear command of the Node.js REPL replaces the context, so
+        // set up the session variables again on the new one.
+        repl.on('reset', (context) => {
+            this.setup(context);
+        });
+        this.setup(repl.context);
+    }
+    setup(context) {
+        const seneca = this.seneca;
+        const options = this.options;
+        Object.assign(context, {
             // NOTE: don't trigger funnies with a .inspect property
-            inspekt: (0, utils_1.makeInspect)(repl.context, {
+            inspekt: (0, utils_1.makeInspect)(context, {
                 ...options.inspect,
                 depth: options.depth,
             }),
-            input,
-            output,
+            input: this.input,
+            output: this.output,
             s: seneca,
             seneca,
             plain: false,
@@ -328,13 +368,21 @@ class ReplInstance {
                 root$: seneca.root,
             },
         });
-        seneca.on_act_in = intern.make_on_act_in(repl.context);
-        seneca.on_act_out = intern.make_on_act_out(repl.context);
-        seneca.on_act_err = intern.make_on_act_err(repl.context);
-        seneca.on('log', intern.make_log_handler(repl.context));
+        seneca.on_act_in = intern.make_on_act_in(context);
+        seneca.on_act_out = intern.make_on_act_out(context);
+        seneca.on_act_err = intern.make_on_act_err(context);
+        this.stop_log();
+        this.log_handler = intern.make_log_handler(context);
+        seneca.on('log', this.log_handler);
     }
     update(status) {
         this.status = status;
+    }
+    stop_log() {
+        if (this.log_handler) {
+            this.seneca.removeListener('log', this.log_handler);
+            this.log_handler = null;
+        }
     }
     writer(val) {
         if (this.state.data) {
@@ -420,18 +468,16 @@ class ReplInstance {
                                 context[m[1]] = out;
                             }
                         }
-                        if (out && !repl.context.act_trace) {
-                            // out =
-                            //   out && out.entity$
-                            //     ? out
-                            //     : context.inspekt(seneca.util.clean(out))
-                            respond(null, out);
-                            // output.write(out + '\n')
-                            // output.write(new Uint8Array([0]))
-                        }
-                        else if (err) {
-                            // output.write(context.inspekt(err) + '\n')
+                        // Always respond, so that the end-of-response marker is sent.
+                        if (err) {
                             respond(err);
+                        }
+                        else if (repl.context.act_trace) {
+                            // The trace hooks have already written the IN and OUT lines.
+                            respond(null);
+                        }
+                        else {
+                            respond(null, out);
                         }
                     });
                     return true;
@@ -491,8 +537,9 @@ class ReplInstance {
         }
     }
     async destroy() {
-        var _a, _b, _c;
+        var _a, _b;
         const seneca = this.seneca;
+        this.stop_log();
         try {
             ((_a = this.input) === null || _a === void 0 ? void 0 : _a.destroy) && this.input.destroy();
         }
@@ -505,16 +552,9 @@ class ReplInstance {
         catch (err) {
             seneca.log.error('repl-close-output', err, { id: this.id });
         }
-        if (((_c = this.server) === null || _c === void 0 ? void 0 : _c.close) && this.server.listening) {
-            return new Promise((resolve) => {
-                this.server.close((err) => {
-                    if (err) {
-                        seneca.log.error('repl-close-server', err, { id: this.id });
-                    }
-                    resolve();
-                });
-            });
-        }
+        // NOTE: the TCP server is shared by all sessions, and is closed by the
+        // plugin once every session has been destroyed. Closing it here would
+        // wait for the connections of the other sessions to end.
     }
 }
 module.exports = repl;

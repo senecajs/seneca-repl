@@ -110,6 +110,8 @@ const LogCmd: Cmd = (spec: CmdSpec) => {
 
   let m = null
 
+  context.log_capture = !context.log_capture
+
   if (!context.log_capture) {
     context.log_match = null
   }
@@ -205,7 +207,7 @@ const List$Cmd: Cmd = (spec: CmdSpec) => {
 
     seneca.entity(canon).list$(query, function (err: any, out: any) {
       if (err) {
-        return respond('ERROR: entity list$: ', err.message)
+        return respond('ERROR: entity list$: ' + err.message)
       }
       return respond(null, out)
     })
@@ -227,7 +229,7 @@ const Load$Cmd: Cmd = (spec: CmdSpec) => {
 
     seneca.entity(canon).load$(query, function (err: any, out: any) {
       if (err) {
-        return respond('ERROR: entity load$: ', err.message)
+        return respond('ERROR: entity load$: ' + err.message)
       }
       return respond(null, out)
     })
@@ -249,7 +251,7 @@ const Save$Cmd: Cmd = (spec: CmdSpec) => {
 
     seneca.entity(canon).save$(query, function (err: any, out: any) {
       if (err) {
-        return respond('ERROR: entity save$: ', err.message)
+        return respond('ERROR: entity save$: ' + err.message)
       }
       return respond(null, out)
     })
@@ -271,7 +273,7 @@ const Remove$Cmd: Cmd = (spec: CmdSpec) => {
 
     seneca.entity(canon).remove$(query, function (err: any, out: any) {
       if (err) {
-        return respond('ERROR: entity remove$: ', err.message)
+        return respond('ERROR: entity remove$: ' + err.message)
       }
       return respond(null, out)
     })

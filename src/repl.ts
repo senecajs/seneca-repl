@@ -11,7 +11,6 @@ import Repl from 'node:repl'
 import Vm from 'node:vm'
 import Util from 'node:util'
 
-import { Open } from 'gubu'
 import Hoek from '@hapi/hoek'
 
 const Inks = require('inks')
@@ -49,70 +48,92 @@ function repl(this: any, options: any) {
   seneca.add('sys:repl,add:cmd', add_cmd)
   seneca.add('sys:repl,echo:true', (msg: any, reply: any) => reply(msg))
 
-  seneca.message('role:seneca,cmd:close', cmd_close)
+  // Seneca 3 closes via role:seneca,cmd:close; Seneca 4 via sys:seneca,cmd:close.
+  const close_pattern = seneca.version.startsWith('3.')
+    ? 'role:seneca,cmd:close'
+    : 'sys:seneca,cmd:close'
 
-  seneca.prepare(async function () {
-    if (options.listen) {
-      server = Net.createServer(function (socket) {
-        socket.on('error', function (err) {
-          seneca.log.error('repl-socket', err)
-        })
+  seneca.add(close_pattern, cmd_close)
 
-        // TODO: fix: should be socket address!!!
-        let address: any = server.address()
-
-        seneca.act('sys:repl,use:repl', {
-          id: address.address + '~' + address.port,
-          server,
-          input: socket,
-          output: socket,
-        })
-      })
-
-      server.listen(options.port, options.host)
-
-      let pres = new Promise<void>((resolve, reject) => {
-        server.on('error', function (err: any) {
-          seneca.log.error('repl-server', err)
-          reject(err)
-        })
-
-        server.on('listening', function () {
-          let address: any = server.address()
-
-          export_address.port = address.port
-          export_address.host = address.address
-          export_address.family = address.family
-
-          seneca.log.info({
-            kind: 'notice',
-            notice: 'REPL listening on ' + address.address + ':' + address.port,
-          })
-
-          resolve()
-        })
-      })
-
-      return pres
+  // Callback style init so that the plugin works on Seneca 3 without
+  // seneca-promisify, and on Seneca 4.
+  seneca.init(function (this: any, done: (err?: any) => void) {
+    if (!options.listen) {
+      return done()
     }
+
+    let finished = false
+    const finish = (err?: any) => {
+      if (!finished) {
+        finished = true
+        done(err)
+      }
+    }
+
+    server = Net.createServer(function (socket) {
+      socket.on('error', function (err) {
+        seneca.log.error('repl-socket', err)
+      })
+
+      // Each connection gets its own REPL instance.
+      seneca.act('sys:repl,use:repl', {
+        id: socket.remoteAddress + '~' + socket.remotePort,
+        server,
+        input: socket,
+        output: socket,
+      })
+    })
+
+    server.on('error', function (err: any) {
+      seneca.log.error('repl-server', err)
+      finish(err)
+    })
+
+    server.on('listening', function () {
+      let address: any = server.address()
+
+      export_address.port = address.port
+      export_address.host = address.address
+      export_address.family = address.family
+
+      seneca.log.info({
+        kind: 'notice',
+        notice: 'REPL listening on ' + address.address + ':' + address.port,
+      })
+
+      finish()
+    })
+
+    server.listen(options.port, options.host)
   })
 
-  async function cmd_close(this: any, msg: any) {
+  function cmd_close(this: any, msg: any, reply: any) {
     const seneca = this
 
-    if (options.listen && server) {
-      server.close((err: any) => {
-        if (err) {
-          seneca.log.error('repl-close-server', err)
-        }
+    close_repls()
+      .catch((err: any) => {
+        seneca.log.error('repl-close', err)
       })
-    }
+      .then(() => {
+        seneca.prior(msg, reply)
+      })
+  }
 
+  async function close_repls() {
     for (let replInst of Object.values(replMap)) {
       await replInst.destroy()
     }
 
-    return seneca.prior(msg)
+    if (server && server.listening) {
+      await new Promise<void>((resolve) => {
+        server.close((err: any) => {
+          if (err) {
+            seneca.log.error('repl-close-server', err)
+          }
+          resolve()
+        })
+      })
+    }
   }
 
   function use_repl(this: any, msg: any, reply: any) {
@@ -147,7 +168,7 @@ function repl(this: any, options: any) {
         if ('exit' === name) {
           setTimeout(() => {
             delete replMap[replID]
-          }, 1111)
+          }, 1111).unref()
         }
       },
     })
@@ -166,7 +187,8 @@ function repl(this: any, options: any) {
 
     // lookup repl by id, using steams to submit cmd and send back response
 
-    let replID = msg.id || options.host + ':' + options.port
+    // Same default identifier as sys:repl,use:repl.
+    let replID = msg.id || options.host + '~' + options.port
     let replInst = replMap[replID]
 
     if (null == replInst) {
@@ -253,7 +275,7 @@ function make_intern() {
             null == context.log_match ||
             -1 < out.indexOf(context.log_match)
           ) {
-            context.socket.write('LOG: ' + out)
+            context.output.write('LOG: ' + out + '\n')
           }
         }
       }
@@ -264,7 +286,7 @@ function make_intern() {
         if (!context.act_trace) return
 
         let actid = (meta || args.meta$ || {}).id
-        context.socket.write(
+        context.output.write(
           'IN  ' +
             intern.fmt_index(context.act_index) +
             ': ' +
@@ -275,8 +297,6 @@ function make_intern() {
             actdef.pattern +
             ' ' +
             actdef.id +
-            ' ' +
-            actdef.action +
             ' ' +
             (actdef.callpoint ? actdef.callpoint : '') +
             '\n',
@@ -298,7 +318,7 @@ function make_intern() {
             : context.inspekt(context.seneca.util.clean(out))
 
         let cur_index = context.act_index_map[actid]
-        context.socket.write(
+        context.output.write(
           'OUT ' + intern.fmt_index(cur_index) + ': ' + out + '\n',
         )
       }
@@ -312,7 +332,7 @@ function make_intern() {
 
         if (actid) {
           let cur_index = context.act_index_map[actid]
-          context.socket.write(
+          context.output.write(
             'ERR ' + intern.fmt_index(cur_index) + ': ' + err.message + '\n',
           )
         }
@@ -321,25 +341,36 @@ function make_intern() {
   }
 }
 
-repl.defaults = {
-  listen: true,
-  port: 30303,
-  host: '127.0.0.1',
-  depth: 11,
-  alias: Open({
-    stats: 'seneca.stats()',
-    'stats full': 'seneca.stats({summary:false})',
+// Use the Gubu shape builders of the Seneca instance that loads the plugin,
+// so that the shape is always built by the Gubu version Seneca itself uses.
+repl.defaults = function (spec: { valid: any }) {
+  const { Open } = spec.valid
+  return {
+    listen: true,
+    port: 30303,
+    host: '127.0.0.1',
+    depth: 11,
+    alias: Open({
+      stats: 'seneca.stats()',
+      'stats full': 'seneca.stats({summary:false})',
 
-    // DEPRECATED
-    'stats/full': 'seneca.stats({summary:false})',
+      // DEPRECATED
+      'stats/full': 'seneca.stats({summary:false})',
 
-    // TODO: there should be a seneca.tree()
-    // tree: 'seneca.root.private$.actrouter',
-  }),
-  inspect: Open({}),
-  cmds: Open({
-    // custom cmds
-  }),
+      // TODO: there should be a seneca.tree()
+      // tree: 'seneca.root.private$.actrouter',
+    }),
+    inspect: Open({}),
+    cmds: Open({
+      // custom cmds
+    }),
+  }
+}
+
+repl.errors = {
+  'unknown-repl': 'REPL instance not found: <%=id%>.',
+  'invalid-status': 'REPL instance <%=id%> is not open: <%=status%>.',
+  'invalid-cmd': 'A REPL command needs a string name and a function action.',
 }
 
 repl.Cmds = Cmds
@@ -356,6 +387,7 @@ class ReplInstance {
   options: any
   cmdMap: any
   event: any
+  log_handler: any
   state = {
     data: false,
   }
@@ -384,6 +416,7 @@ class ReplInstance {
 
     repl.on('exit', () => {
       this.update('closed')
+      this.stop_log()
       input.end()
       output.end()
       this.event('exit')
@@ -394,14 +427,27 @@ class ReplInstance {
       this.event('error')
     })
 
-    Object.assign(repl.context, {
+    // The .clear command of the Node.js REPL replaces the context, so
+    // set up the session variables again on the new one.
+    repl.on('reset', (context: any) => {
+      this.setup(context)
+    })
+
+    this.setup(repl.context)
+  }
+
+  setup(context: any) {
+    const seneca = this.seneca
+    const options = this.options
+
+    Object.assign(context, {
       // NOTE: don't trigger funnies with a .inspect property
-      inspekt: makeInspect(repl.context, {
+      inspekt: makeInspect(context, {
         ...options.inspect,
         depth: options.depth,
       }),
-      input,
-      output,
+      input: this.input,
+      output: this.output,
       s: seneca,
       seneca,
       plain: false,
@@ -419,15 +465,24 @@ class ReplInstance {
       },
     })
 
-    seneca.on_act_in = intern.make_on_act_in(repl.context)
-    seneca.on_act_out = intern.make_on_act_out(repl.context)
-    seneca.on_act_err = intern.make_on_act_err(repl.context)
+    seneca.on_act_in = intern.make_on_act_in(context)
+    seneca.on_act_out = intern.make_on_act_out(context)
+    seneca.on_act_err = intern.make_on_act_err(context)
 
-    seneca.on('log', intern.make_log_handler(repl.context))
+    this.stop_log()
+    this.log_handler = intern.make_log_handler(context)
+    seneca.on('log', this.log_handler)
   }
 
   update(status: string) {
     this.status = status
+  }
+
+  stop_log() {
+    if (this.log_handler) {
+      this.seneca.removeListener('log', this.log_handler)
+      this.log_handler = null
+    }
   }
 
   writer(this: any, val: any) {
@@ -533,18 +588,14 @@ class ReplInstance {
               }
             }
 
-            if (out && !repl.context.act_trace) {
-              // out =
-              //   out && out.entity$
-              //     ? out
-              //     : context.inspekt(seneca.util.clean(out))
-
-              respond(null, out)
-              // output.write(out + '\n')
-              // output.write(new Uint8Array([0]))
-            } else if (err) {
-              // output.write(context.inspekt(err) + '\n')
+            // Always respond, so that the end-of-response marker is sent.
+            if (err) {
               respond(err)
+            } else if (repl.context.act_trace) {
+              // The trace hooks have already written the IN and OUT lines.
+              respond(null)
+            } else {
+              respond(null, out)
             }
           })
 
@@ -609,6 +660,8 @@ class ReplInstance {
   async destroy(this: any) {
     const seneca = this.seneca
 
+    this.stop_log()
+
     try {
       this.input?.destroy && this.input.destroy()
     } catch (err) {
@@ -621,16 +674,9 @@ class ReplInstance {
       seneca.log.error('repl-close-output', err, { id: this.id })
     }
 
-    if (this.server?.close && this.server.listening) {
-      return new Promise<void>((resolve) => {
-        this.server.close((err: any) => {
-          if (err) {
-            seneca.log.error('repl-close-server', err, { id: this.id })
-          }
-          resolve()
-        })
-      })
-    }
+    // NOTE: the TCP server is shared by all sessions, and is closed by the
+    // plugin once every session has been destroyed. Closing it here would
+    // wait for the connections of the other sessions to end.
   }
 }
 

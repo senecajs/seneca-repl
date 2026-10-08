@@ -14,6 +14,11 @@ const Plugin = require('..')
 
 const Seneca = require('seneca')
 
+// Seneca 3 names the builtin actions role:seneca, Seneca 4 sys:seneca.
+const SYS = require('seneca/package.json').version.startsWith('3.')
+  ? 'role'
+  : 'sys'
+
 // const lab = (exports.lab = Lab.script())
 // const describe = lab.describe
 // const it = lab.it
@@ -36,11 +41,11 @@ describe('repl', function () {
     await si
       .use(
         { tag: 'a', init: Plugin },
-        { host: '0.0.0.0', port: 60606, depth: 1 },
+        { host: '127.0.0.1', port: 60606, depth: 1 },
       )
       .use(
         { tag: 'b', init: Plugin },
-        { host: '0.0.0.0', port: 50505, depth: 1 },
+        { host: '127.0.0.1', port: 50505, depth: 1 },
       )
       .ready()
 
@@ -67,20 +72,20 @@ describe('repl', function () {
     try {
       await new Promise((resolve, reject) => {
         si.error((err) => {
-          expect(err.code).toEqual('EADDRINUSE')
+          expect(err.message).toContain('EADDRINUSE')
           resolve()
         })
           .use('promisify')
           .use(
             { tag: 'a', init: Plugin },
-            { host: '0.0.0.0', port: 60606, depth: 1 },
+            { host: '127.0.0.1', port: 60606, depth: 1 },
           )
           .use(
             { tag: 'b', init: Plugin },
-            { host: '0.0.0.0', port: 60606, depth: 1 },
+            { host: '127.0.0.1', port: 60606, depth: 1 },
           )
-          // .use('..$a', { host: '0.0.0.0', port: 60606, depth: 1 })
-          // .use('..$b', { host: '0.0.0.0', port: 60606, depth: 1 })
+          // .use('..$a', { host: '127.0.0.1', port: 60606, depth: 1 })
+          // .use('..$b', { host: '127.0.0.1', port: 60606, depth: 1 })
           .ready(reject)
       })
     } finally {
@@ -89,46 +94,57 @@ describe('repl', function () {
   })
 
   it('cmd_get', async function () {
-    const si = await Seneca({ tag: 'foo' }).test()
-    Cmds.GetCmd({
-      name: 'get',
-      argstr: 'tag',
-      context: { seneca: si },
-      options: {},
-      respond: (err, out) => {
-        expect(err).toBeNull()
-        expect(out).toEqual('foo')
-      },
-    })
+    const si = Seneca({ tag: 'foo' }).test()
+    try {
+      Cmds.GetCmd({
+        name: 'get',
+        argstr: 'tag',
+        context: { seneca: si },
+        options: {},
+        respond: (err, out) => {
+          expect(err).toBeNull()
+          expect(out).toEqual('foo')
+        },
+      })
+    } finally {
+      await si.close()
+    }
   })
 
   it('cmd_depth', async function () {
-    const si = await Seneca().test()
-    // Plugin.intern.cmd_depth('depth', '4', { seneca: si }, {}, (err, out) => {
-    Cmds.DepthCmd({
-      name: 'depth',
-      argstr: '4',
-      context: { seneca: si },
-      options: {},
-      respond: (err, out) => {
-        expect(err).toBeNull()
-        expect(out).toEqual('Inspection depth set to 4')
-      },
-    })
+    const si = Seneca().test()
+    try {
+      Cmds.DepthCmd({
+        name: 'depth',
+        argstr: '4',
+        context: { seneca: si },
+        options: {},
+        respond: (err, out) => {
+          expect(err).toBeNull()
+          expect(out).toEqual('Inspection depth set to 4')
+        },
+      })
+    } finally {
+      await si.close()
+    }
   })
 
   it('cmd_data', async function () {
-    const si = await Seneca({ tag: 'foo' }).test()
-    Cmds.DataCmd({
-      name: 'get',
-      argstr: 'foo',
-      context: { seneca: si, foo: { x: 1 } },
-      options: {},
-      respond: (err, out) => {
-        expect(err).toBeNull()
-        expect(out).toEqual('{"x":1}')
-      },
-    })
+    const si = Seneca({ tag: 'foo' }).test()
+    try {
+      Cmds.DataCmd({
+        name: 'get',
+        argstr: 'foo',
+        context: { seneca: si, foo: { x: 1 } },
+        options: {},
+        respond: (err, out) => {
+          expect(err).toBeNull()
+          expect(out).toEqual('{"x":1}')
+        },
+      })
+    } finally {
+      await si.close()
+    }
   })
 
   it('happy', async function () {
@@ -279,6 +295,100 @@ describe('repl', function () {
     await si.close()
   })
 
+  it('msg-default-id-and-errors', async function () {
+    const si = Seneca().use('promisify').test().quiet()
+    await new Promise((resolve) =>
+      si.use(Plugin, { listen: false }).ready(resolve),
+    )
+
+    try {
+      // Without an id, both messages use <host>~<port>.
+      const created = await si.post('sys:repl,use:repl')
+      expect(created.repl.id).toEqual('127.0.0.1~30303')
+
+      const res = await si.post('sys:repl,send:cmd', { cmd: '40+2' })
+      expect(res).toEqual({ ok: true, out: '42\n' })
+
+      let err = null
+      try {
+        await si.post('sys:repl,send:cmd', { id: 'nope', cmd: '1' })
+      } catch (e) {
+        err = e
+      }
+      expect(err.code).toEqual('unknown-repl')
+      expect(err.message).toContain('REPL instance not found: nope.')
+
+      err = null
+      try {
+        await si.post('sys:repl,add:cmd', { name: 'bad' })
+      } catch (e) {
+        err = e
+      }
+      expect(err.code).toEqual('invalid-cmd')
+
+      // A session that has ended is not open.
+      created.repl.input.end()
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      err = null
+      try {
+        await si.post('sys:repl,send:cmd', { cmd: '1' })
+      } catch (e) {
+        err = e
+      }
+      expect(err.code).toEqual('invalid-status')
+    } finally {
+      await si.close()
+    }
+  })
+
+  it('two-clients', async function () {
+    const si = Seneca().use('promisify').test()
+    await new Promise((resolve) => si.use(Plugin, { port: 0 }).ready(resolve))
+    const addr = si.export('repl/address')
+
+    // Send one line, resolve with the response (text before the NUL).
+    function client() {
+      const sock = Net.connect(addr.port, addr.host)
+      let buf = ''
+      let pending = []
+      sock.on('data', (chunk) => {
+        buf += chunk.toString()
+        let end
+        while (-1 !== (end = buf.indexOf('\0'))) {
+          const res = buf.substring(0, end)
+          buf = buf.substring(end + 1)
+          pending.shift()(res)
+        }
+      })
+      return {
+        sock,
+        closed: new Promise((resolve) => sock.on('close', resolve)),
+        send: (line) =>
+          new Promise((resolve) => {
+            pending.push(resolve)
+            sock.write(line + '\n')
+          }),
+      }
+    }
+
+    const c1 = client()
+    const c2 = client()
+
+    try {
+      expect(await c1.send('hello')).toContain('version')
+      expect(await c2.send('hello')).toContain('version')
+
+      // Each connection has its own session.
+      expect(await c1.send('v = 1')).toEqual('1\n')
+      expect(await c2.send('typeof v')).toEqual("'undefined'\n")
+    } finally {
+      // Closing while both clients are connected must not wait for them.
+      await si.close()
+    }
+
+    await Promise.all([c1.closed, c2.closed])
+  })
+
   it(
     'interaction',
     async function () {
@@ -337,7 +447,7 @@ describe('repl', function () {
               },
               {
                 send: 'list\n',
-                expect: "{ cmd: 'close', role: 'seneca' }",
+                expect: "{ cmd: 'close', " + SYS + ": 'seneca' }",
               },
               {
                 send: 'stats\n',
@@ -345,7 +455,7 @@ describe('repl', function () {
               },
               {
                 send: 'list\n',
-                expect: "role: 'seneca'",
+                expect: SYS + ": 'seneca'",
               },
               {
                 send: 'a:1,x:2\n',
@@ -408,31 +518,75 @@ describe('repl', function () {
                 send: 'a:1,x:2\n',
                 expect: 'x: 2',
               },
+              {
+                send: 'trace\n',
+                expect: '',
+              },
+              {
+                send: 'a:1,x:4\n',
+                expect: /IN .*a: 1.*x: 4.*OUT .*x: 4/s,
+              },
+              {
+                send: 'trace\n',
+                expect: '',
+              },
+              {
+                send: 'log\n',
+                expect: '',
+              },
+              {
+                send: 'a:1,x:5\n',
+                expect: /LOG: .*x: 5/s,
+              },
+              {
+                send: 'log\n',
+                expect: '',
+              },
+              {
+                send: 'a:1,x:6\n',
+                expect: 'x: 6',
+              },
+              {
+                send: '.clear\n',
+                expect: 'Clearing context',
+              },
+              {
+                send: 'typeof seneca\n',
+                expect: "'object'",
+              },
+              {
+                send: 'a:1,x:7\n',
+                expect: 'x: 7',
+              },
             ]
 
-            // console.log('QUIT')
-            // sock.write('seneca.quit()\n')
+            // Close the instance on failure too, so that the process exits.
+            function fail(err) {
+              sock.destroy()
+              si.close(() => bad(err))
+            }
 
             function nextStep() {
               var step = conversation.shift()
               if (!step) {
-                // return good()
+                sock.destroy()
                 return si.close(good)
               }
 
               result = ''
 
-              // console.log('SEND: '+step.send)
               sock.write(step.send)
               setTimeout(function () {
-                // console.log('RESULT: '+result)
-                // console.log('EXPECT: '+step.expect)
-                if (null != step.expect) {
-                  if ('string' === typeof step.expect) {
-                    expect(result).toContain(step.expect)
-                  } else if (step.expect instanceof RegExp) {
-                    expect(result).toMatch(step.expect)
+                try {
+                  if (null != step.expect) {
+                    if ('string' === typeof step.expect) {
+                      expect(result).toContain(step.expect)
+                    } else if (step.expect instanceof RegExp) {
+                      expect(result).toMatch(step.expect)
+                    }
                   }
+                } catch (err) {
+                  return fail(err)
                 }
                 nextStep()
               }, 222 * tmx)
@@ -440,12 +594,16 @@ describe('repl', function () {
 
             sock.write('hello\n')
             setTimeout(function () {
-              expect(result).toContain('version')
+              try {
+                expect(result).toContain('version')
+              } catch (err) {
+                return fail(err)
+              }
               nextStep()
             }, 222 * tmx)
           })
       })
     },
-    9999 * tmx,
+    19999 * tmx,
   )
 })
