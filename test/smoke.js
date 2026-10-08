@@ -47,8 +47,6 @@ async function run() {
     })
     console.log('SEND CMD RES', res)
 
-    await si.ready()
-
     web(si)
     //console.log('BBBB')
 

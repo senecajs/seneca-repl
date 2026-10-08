@@ -92,6 +92,7 @@ const HistoryCmd = (spec) => {
 const LogCmd = (spec) => {
     const { context, argstr, respond } = spec;
     let m = null;
+    context.log_capture = !context.log_capture;
     if (!context.log_capture) {
         context.log_match = null;
     }
@@ -165,7 +166,7 @@ const List$Cmd = (spec) => {
         let query = seneca.util.Jsonic(qstr);
         seneca.entity(canon).list$(query, function (err, out) {
             if (err) {
-                return respond('ERROR: entity list$: ', err.message);
+                return respond('ERROR: entity list$: ' + err.message);
             }
             return respond(null, out);
         });
@@ -184,7 +185,7 @@ const Load$Cmd = (spec) => {
         let query = seneca.util.Jsonic(qstr);
         seneca.entity(canon).load$(query, function (err, out) {
             if (err) {
-                return respond('ERROR: entity load$: ', err.message);
+                return respond('ERROR: entity load$: ' + err.message);
             }
             return respond(null, out);
         });
@@ -203,7 +204,7 @@ const Save$Cmd = (spec) => {
         let query = seneca.util.Jsonic(qstr);
         seneca.entity(canon).save$(query, function (err, out) {
             if (err) {
-                return respond('ERROR: entity save$: ', err.message);
+                return respond('ERROR: entity save$: ' + err.message);
             }
             return respond(null, out);
         });
@@ -222,7 +223,7 @@ const Remove$Cmd = (spec) => {
         let query = seneca.util.Jsonic(qstr);
         seneca.entity(canon).remove$(query, function (err, out) {
             if (err) {
-                return respond('ERROR: entity remove$: ', err.message);
+                return respond('ERROR: entity remove$: ' + err.message);
             }
             return respond(null, out);
         });

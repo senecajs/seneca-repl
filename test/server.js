@@ -18,14 +18,6 @@ Seneca({ legacy: false })
     //   '-/-/foo': ['c'],
     // },
   })
-  .use('user')
-  .use('gateway-auth')
-
-  .use('owner', {
-    ownerprop: 'principal.user',
-    fields: ['id:owner_id'],
-    annotate: ['sys:entity'],
-  })
 
   .use(function foo() {
     this.message('make:foo', async function (msg) {
@@ -56,8 +48,6 @@ Seneca({ legacy: false })
           .save$()
       })
   })
-  .act('sys:user,register:user,nick:alice,email:alice@example.com')
-  .act('sys:user,register:user,nick:bob,email:bob@example.com')
   .ready(async function () {
     console.log(await this.entity('foo').list$())
   })

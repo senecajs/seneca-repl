@@ -1,342 +1,195 @@
-![Seneca](http://senecajs.org/files/assets/seneca-logo.png)
-> A [Seneca.js][] plugin
-
 # @seneca/repl
+
+A [Seneca](https://senecajs.org) plugin that gives a running service an
+interactive REPL (read, evaluate, print loop). In a REPL session you can
+send messages to the service by typing them in
+[Jsonic](https://github.com/jsonicjs/jsonic) form, inspect patterns,
+plugins and options, trace messages, work with data entities, and run
+JavaScript against the live Seneca instance. Sessions are reached over a
+local TCP port with the `seneca-repl` command line client, over HTTP or
+AWS Lambda through your own endpoint, or directly with Seneca messages.
+Works with Seneca 4 (tested with 4.0.0-rc5 and 4.0.0) and Seneca 3
+(tested with 3.38).
+
+[![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
+[![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
 
 | ![Voxgig](https://www.voxgig.com/res/img/vgt01r.png) | This open source module is sponsored and supported by [Voxgig](https://www.voxgig.com). |
 |---|---|
 
 ## Install
 
-This is Seneca plugin, so you'll also need the Seneca framework installed to use the REPL.
+```sh
+npm install seneca @seneca/repl
+```
+
+`seneca` is a peer dependency (`>=3 || >=4.0.0-rc5`). Seneca 4 needs
+Node.js 22 or later; the tests run on Node.js 24 and 22.
+
+The package also installs the `seneca-repl` client. Run it with
+`npx seneca-repl` in your project, or install it globally:
 
 ```sh
-$ npm install seneca
-$ npm install @seneca/repl
+npm install -g @seneca/repl
 ```
 
-To use the REPL client on the command line, you should install globally:
+To reach a REPL inside an AWS Lambda function, the client also needs the
+AWS SDK Lambda client, which is not installed by default:
 
-```
-$ npm i -g seneca @seneca/repl
-$ seneca-repl # now works!
-```
-
-### Installing optional components
-
-This plugin can provide a REPL for AWS Lambda functions (via
-`invoke`). You will need to install the AWS SDK so the REPL client can
-use it to connect to your lambda function.
-
-```
-$ npm i -g @aws-sdk/client-lambda
+```sh
+npm install -g @aws-sdk/client-lambda
 ```
 
 ## Quick Example
 
-Add the REPL as a plugin to your Seneca instance. By default the
-plugin will listen on localhost port 30303.
-
 ```js
-var Seneca = require('seneca')
-
-var seneca = Seneca()
-  // open repl on default port 30303
-  .use('repl') 
-
-  // open another repl on port 10001
-  .use('repl', {port: 10001})
-
-  // open yet another repl on a free port chosen by your OS
-  // look at the INFO level logs for the host and port
-  // or get them from seneca.export('repl/address')
-  .use('repl', {port: 0})
-```
-
-To access the REPL, run the `seneca-repl` command provided by this
-plugin.
-
-```
-$ seneca-repl
-```
-
-You can specify the target Seneca server using a URI
-
-```
-$ seneca-repl telnet://localhost:30303 # same as default
-```
-
-
-NOTE: If the connection drops, the `seneca-repl` client will attempt
-to reconnect at regular intervals. This means you can stop and start
-your development server without needing to restart the REPL.
-
-
-Skip ahead to the [Commands](#commands) section if this is all you
-need.
-
-
-### REPL over Seneca Message
-
-You can submit REPL commands using the message
-`sys:repl,send:cmd`. This message requires an `id` property to
-indicate the REPL instance to use:
-
-```
 const Seneca = require('seneca')
 
-const seneca = Seneca()
-  .use('promisify')  // npm install @seneca/promisify
-  .use('repl')
-  .act('sys:repl,use:repl,id:foo')
-  
-await seneca.ready()
+const seneca = Seneca({ log: 'warn' })
+  .use('repl') // listens on 127.0.0.1:30303
+  .add('role:shop,cmd:price', function (msg, reply) {
+    reply({ item: msg.item, price: 1.5 })
+  })
 
-let res = await seneca.post('sys:repl,send:cmd,id:foo', {
-  cmd: '1+1'
+seneca.ready(function () {
+  console.log('REPL address:', seneca.export('repl/address'))
 })
-
-// Prints { ok: true, out:'4\n' }
-console.log(res)
-
 ```
 
-You can use this to expose a REPL connector in custom
-environments. This plugin provides a REPL over HTTP, and over AWS
-Lambda invocations. Review the implementation code for these if you
-want to write your own REPL connector.
-
-
-### REPL over HTTP(S)
-
-Opening a local port is usually only possible for local development,
-so you can also expose the REPL via a HTTP endpoint. This can be
-useful to debug build or staging systems. This is **NOT** recommended
-for production.
-
-> **WARNING**
-> This is a security risk. Your app will need to apply additional
-> constraints to prevent arbitrary message submission via the REPL.
-
-On the server, use the `sys:repl,use:repl` message to start a new REPL
-inside the Seneca instance. Do this on startup (without a REPL
-instance, a REPL connection will not operate). You will need to
-special an identifier for this REPL.
-
-
-```js
-seneca.act('sys:repl,use:repl,id:web')
-```
-
-Next you will need to call the `sys:repl,send:cmd` message when your
-chosen HTTP endpoint for the REPL is called. For _express_, this might look like:
+Start the service, then connect from another terminal:
 
 ```
-const Express = require('express')
-const BodyParser = require('body-parser')
-const Seneca = require('seneca')
+$ npx seneca-repl
+Connected to Seneca: {
+  version: '4.0.0-rc5',
+  id: 'ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-',
+  when: 1791443562678,
+  address: { address: '127.0.0.1', family: 'IPv4', port: 30303 }
+}
+ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-> role:shop,cmd:price,item:apple
 
-const app = express()
-const seneca = Seneca()
+{ item: 'apple', price: 1.5 }
 
-seneca
-  .use('repl')
-  .act('sys:repl,use:repl,id:web')
-    
-app.use(bodyParser.json())
-
-// Accepts body = {cmd:'...repl cmd goes here...'}
-app.post('/seneca-repl', (req, res) => {
-  const body = req.body
-
-  seneca.act(
-    { sys: 'repl', send: 'cmd', id: 'web', cmd: body.cmd }, 
-    function (err, result) {
-      if (err) {
-        return res.status(500).json({ ok: false, error: err.message })
-      }
-
-      return res.json(result.out)
-    })
-})
-
-app.listen(8080)
+ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-> quit
 ```
 
-On the command line, access the REPL using a HTTP URL:
-
-```
-$ seneca-repl http://localhost:8888/seneca-repl?id=web
-```
-
-By default, HTTP URLs with use `web` as the identifier.
+The prompt is the identifier of the Seneca instance. Type `quit` to
+leave. The REPL listens on the loopback interface only; anyone who can
+connect can run any code in your process, so read
+[Secure the REPL](docs/how-to/secure-the-repl.md) before you change the
+host.
 
 ## More Examples
 
-See [test/](test/) for usage examples.
+* [Getting started](docs/tutorials/getting-started.md): start a REPL
+  inside a service and use it with `seneca-repl`.
+* [Drive a REPL over HTTP](docs/tutorials/drive-a-repl-over-http.md):
+  an HTTP endpoint for REPL commands, used with `seneca-repl` and curl.
+* How-to guides:
+  [secure the REPL](docs/how-to/secure-the-repl.md),
+  [inspect and send messages](docs/how-to/inspect-and-send-messages.md),
+  [add custom commands and aliases](docs/how-to/add-custom-commands-and-aliases.md),
+  [use the REPL over messages or a gateway](docs/how-to/use-the-repl-over-messages.md),
+  [connect to AWS Lambda](docs/how-to/connect-to-aws-lambda.md),
+  [keep and clear history](docs/how-to/keep-and-clear-history.md),
+  [migrate from Seneca 3](docs/how-to/migrate-from-seneca-3.md).
+* All runnable programs: [docs/examples](docs/examples/README.md).
+
+The full documentation index is [docs/README.md](docs/README.md).
 
 ## Motivation
 
-Provides an interactive REPL (Read-Eval-Print Loop) for Seneca microservices, allowing you to inspect and call action patterns at runtime.
+A REPL is the quickest way to find out what a running service is doing:
+you type a message and see the reply, without writing a test or a client.
+This plugin makes that work for Seneca services everywhere they run, from
+a local development process to a serverless function that cannot accept
+connections. See
+[How the REPL evaluates input](docs/explanation/how-the-repl-evaluates-input.md)
+and [Why several ways to connect](docs/explanation/why-several-ways-to-connect.md).
 
 ## Support
 
-If you're using this module and need help, you can:
-
-- Post a [github issue][]
-- Tweet to [@senecajs][]
+* Questions and bug reports: [GitHub issues](https://github.com/senecajs/seneca-repl/issues).
+* Seneca documentation: [senecajs.org](https://senecajs.org) and the
+  [Seneca 4 documentation](https://github.com/senecajs/seneca/blob/master/docs/README.md).
+* Commercial support: [Voxgig](https://www.voxgig.com).
 
 ## API
 
-### Commands
+Plugin options. Details in the [options reference](docs/reference/options.md).
 
-The repl evaluates JavaScript directly:
+| Option | Default | Purpose |
+| ------ | ------- | ------- |
+| `listen` | `true` | Open the TCP port when the plugin starts. |
+| `host` | `'127.0.0.1'` | Interface the TCP port binds to. |
+| `port` | `30303` | TCP port; `0` picks a free port. |
+| `depth` | `11` | Inspection depth of trace and log lines. |
+| `alias` | `stats`, `stats full` | Shortcuts that expand to other input. |
+| `inspect` | `{}` | `util.inspect` options for trace and log lines. |
+| `cmds` | `{}` | Custom REPL commands. |
 
-```
-> 1+1
-2
-```
+Messages. Details in the [messages reference](docs/reference/messages.md).
 
-You also have a `seneca` instance available:
+| Pattern | Purpose |
+| ------- | ------- |
+| `sys:repl,use:repl` | Create (or get) a REPL session with an id. |
+| `sys:repl,send:cmd` | Run one line of input in a session and reply with the output. |
+| `sys:repl,add:cmd` | Add a custom command at runtime. |
+| `sys:repl,echo:true` | Reply with the message itself. |
 
-```
-> seneca.id
-'SENECA-ID'
-```
+More reference pages:
 
-You can submit messages directly using
-[jsonic](https://github.com/rjrodger/jsonic) format (JSON, but not strict!):
-
-```
-> role:seneca,cmd:stats
-{
-  start: '2023-08-01T17:37:39.880Z',
-  act: { calls: 122, done: 121, fails: 8, cache: 0 },
-  actmap: undefined,
-  now: '2023-08-01T17:49:17.316Z',
-  uptime: 697436
-}
-```
-
-This is *very* useful for local debugging.
-
-To access entity data, use the `list$`, `load$`, `save$` and `remove$`
-commands:
-
-```
-> list$ foo
-[
-  { entity$: '-/-/foo', ...},
-  { entity$: '-/-/foo', ...},
-  ...
-]
-```
-
-These all accept the parameters:
-* entity canon (required): `zone/base/name`
-* query (optional): `{field:value,...}`
-
-
-NOTE: this is a Node.js REPL, so you also get some of the features of a Node.js REPL:
-* The value of the last response is placed into the `_` variable
-* You can use standard movement shortcuts like `Ctrl-A`, `Ctrl-E`, etc
-* Command history
-
-### Available Commands
-
-* `list <pin>|plugin`: 
-  * `<pin>`: list local message patterns, optionally narrowed by `pin` (e.g. `foo:1`)
-  * `plugin`: list all plugins by full name
-* `find <pin>|<plugin-name>`:
-  * `<pin`: find an _exact_ matching message pattern definition (e.g. `sys:entity,cmd:load`)
-  * `<plugin-name>`: find a plugin definition
-* `list$ canon <query>`: list entity data (like `seneca.entity(canon).list$(query)`)
-* `load$ canon <query>`: load entity data (like `seneca.entity(canon).load$(query)`)
-* `save$ canon <data>`: save entity data (like `seneca.entity(canon).save$(data)`)
-* `remove$ canon <query>`: remove entity data (like `seneca.entity(canon).remove$(query)`)
-* `entity$ canon`: describe an entity (like `seneca.entity(canon)`)
-* `stats`: print local statistics
-* `stats full`: print full local statistics
-* `exit` or `quit`: exit the repl session
-* `last`: run last command again
-* `set <path> <value>`: set a seneca option, e.g: `set debug.deprecation true`
-* `get <path>`: get a seneca option
-* `alias <name> <cmd>`: define a new alias
-* `log`: toggle printing of remote log entries in test format (NOTE: these are unfiltered)
-* `log match <literal>`: when logging is enabled, only print lines matching the provided literal string
-* `depth <number>`: set depth of Util.inspect printing
-
-
-### History
-
-The command history is saved to text files in a `.seneca` in your home
-folder.  History is unique to each target server. You can also add
-additional URL parameters to isolate a server history:
-
-```
-$ seneca-repl localhost?project=foo # separate history for foo server
-$ seneca-repl localhost?project=bar # separate history for bar server
-```
-
-<!--START:options-->
-
-### Options
-
-* `test` : boolean <i><small>false</small></i>
-
-
-Set plugin options when loading with:
-```js
-
-
-seneca.use('repl', { name: value, ... })
-
-
-```
-
-
-<small>Note: <code>foo.bar</code> in the list above means 
-<code>{ foo: { bar: ... } }</code></small> 
-
-
-
-<!--END:options-->
-
-
-<!--START:action-list-->
+| Reference | Describes |
+| --------- | --------- |
+| [Commands](docs/reference/commands.md) | Every REPL command, message input, JavaScript input and the session variables. |
+| [Command line client](docs/reference/cli.md) | `seneca-repl` arguments, keys, directives, history and exit codes. |
+| [Protocols](docs/reference/protocols.md) | The TCP, HTTP and AWS Lambda protocols and the end of response marker. |
+| [Exports](docs/reference/exports.md) | `repl/address` and the module exports. |
+| [Errors](docs/reference/errors.md) | The plugin's error codes. |
 
 ## Contributing
 
-The [Senecajs org][] encourages open participation. If you feel you can help in any way, be it with documentation, examples, extra testing, or new features please get in touch.
+The [Senecajs org](https://github.com/senecajs/) encourages open
+participation. If you feel you can help in any way, be it with
+documentation, examples, extra testing, or new features, please get in
+touch.
 
-### Running tests
+The plugin is written in TypeScript (`src/`) and compiled to `dist/`,
+which is committed. The tests use jest and run against the Seneca 4
+prerelease (devDependency `seneca@^4.0.0-rc5`). Node.js 24 is the
+default target; Node.js 22 is also tested.
 
 ```sh
-npm run test
+npm install
+npm run build
+npm test
 ```
+
+To test against another Seneca version, install it without saving, for
+example `npm install --no-save seneca@3`, run `npm test`, then run
+`npm install` again. `npm run maintain` runs the Seneca repository
+hygiene checks.
+
+The continuous integration workflow change (Node.js 24 and 22) is
+provided as a patch in [.patches](.patches/README.md), because workflow
+files cannot be pushed without extra permissions. Apply it with
+`git am .patches/*.patch`.
 
 ## Background
 
-Inspired by the Node.js REPL. See [Action Patterns](https://senecajs.org/docs/tutorials/understanding-data-entities.html) for usage.
+The REPL is one of the oldest Seneca plugins. Version 6 (2023) rebuilt
+it around Node.js streams, marked the end of each response with a NUL
+character, and added the entity commands and the HTTP and AWS Lambda
+connections; the release notes are in [doc/](doc/version-6-release-pub.md).
+Version 9.2 adds support for Seneca 4. See the [change log](CHANGES.md).
 
-[![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
-[![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
-[![Coverage Status](https://coveralls.io/repos/github/senecajs/seneca-repl/badge.svg?branch=main)](https://coveralls.io/github/senecajs/seneca-repl?branch=main)
-[![Known Vulnerabilities](https://snyk.io/test/github/senecajs/seneca-repl/badge.svg)](https://snyk.io/test/github/senecajs/seneca-repl)
-[![DeepScan grade](https://deepscan.io/api/teams/5016/projects/25211/branches/785261/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=5016&pid=25211&bid=785261)
-[![Maintainability](https://api.codeclimate.com/v1/badges/17b0bd2f87252d0dcfc5/maintainability)](https://codeclimate.com/github/senecajs/seneca-repl/maintainability)
-[@aws-sdk/client-lambda](https://www.npmjs.com/package/@aws-sdk/client-lambda)
-[rlwrap](https://github.com/hanslub42/rlwrap)
-[jsonic](https://github.com/rjrodger/jsonic) format (JSON, but not strict!):
-[
-[MIT]: ./LICENSE
-[Seneca.js]: https://www.npmjs.com/package/seneca
-[Senecajs org]: https://github.com/senecajs/
-[travis-badge]: https://travis-ci.org/senecajs/seneca-repl.svg
-[travis-url]: https://travis-ci.org/senecajs/seneca-repl
-[gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
-[gitter-url]: https://gitter.im/senecajs/seneca
-[npm-badge]: https://img.shields.io/npm/v/seneca-repl.svg
-[npm-url]: https://npmjs.com/package/seneca-repl
-[david-badge]: https://david-dm.org/senecajs/seneca-repl.svg
-[david-url]: https://david-dm.org/senecajs/seneca-repl
+| @seneca/repl | Seneca | Node.js |
+| ------------ | ------ | ------- |
+| 9.2 | 4 (4.0.0-rc5 and later) and 3 (3.38 tested) | 24, 22 |
+| 9.1 and earlier | 3 | |
+
+Seneca 4 needs Node.js 22 or later. See
+[Seneca 3 and Seneca 4](docs/explanation/seneca-3-and-4.md) for the
+differences that matter to REPL users.
+
+Licensed under [MIT](LICENSE).
