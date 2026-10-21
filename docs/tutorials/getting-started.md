@@ -8,7 +8,8 @@ takes about fifteen minutes. The programs are in
 
 ## 1. Install
 
-You need Node.js 22 or later (24 is recommended). In a new directory:
+You need Node.js 24 or later (Seneca 4.0.0 requires it). In a new
+directory:
 
 ```sh
 npm init -y
@@ -146,46 +147,40 @@ this (the stack trace is shortened here):
 
 ```
 Connected to Seneca: {
-  version: '4.0.0-rc5',
-  id: 'i30uqutul25s/1791442827602/14841/4.0.0-rc5/-',
-  when: 1791442829099,
+  version: '4.0.0',
+  id: 'oifv3dcl62fy/1792608114481/11238/4.0.0/-',
+  when: 1792608114785,
   address: { address: '127.0.0.1', family: 'IPv4', port: 30303 }
 }
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> role:shop,cmd:price,item:apple
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> role:shop,cmd:price,item:apple
 { item: 'apple', price: 1.5 }
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> role:shop,cmd:order,item:pear,quantity:2
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> role:shop,cmd:order,item:pear,quantity:2
 { item: 'pear', quantity: 2, total: 4.5 }
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> list role:shop
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> list role:shop
 [ { cmd: 'price', role: 'shop' }, { cmd: 'order', role: 'shop' } ]
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> role:shop,cmd:price,item:kiwi
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> role:shop,cmd:price,item:kiwi
 Uncaught Error: Unknown item: kiwi
-    at Seneca.<anonymous> (/home/user/seneca-repl/docs/examples/shop.js:8:20)
+    at SenecaInstance.<anonymous> (/home/user/seneca-repl/docs/examples/shop.js:8:20)
     ...
-  callpoint: 'at Seneca.<anonymous> (/home/user/seneca-repl/docs/examples/shop.js:8:20)'
+  callpoint: 'at SenecaInstance.<anonymous> (/home/user/seneca-repl/docs/examples/shop.js:8:20)'
 }
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> err.message
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> err.message
 'Unknown item: kiwi'
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> stats
-
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> stats
 {
-  start: '2026-10-08T07:00:27.591Z',
-  act: { calls: 9, done: 9, fails: 1, cache: 0 },
+  start: '2026-10-21T18:41:54.468Z',
+  act: { calls: 10, done: 10, fails: 1, cache: 0 },
   actmap: undefined,
-  now: '2026-10-08T07:00:35.491Z',
-  uptime: 7900
+  now: '2026-10-21T18:41:56.801Z',
+  uptime: 2333
 }
 
-i30uqutul25s/1791442827602/14841/4.0.0-rc5/-> quit
+oifv3dcl62fy/1792608114481/11238/4.0.0/-> quit
 ```
 
 What you see:

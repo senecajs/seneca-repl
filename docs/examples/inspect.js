@@ -16,7 +16,11 @@ function discount(options) {
 
 async function main() {
   const seneca = Seneca({ log: 'warn' })
-    .use('entity') // seneca-entity, for the list$, save$, load$ commands
+    // The entity plugin, for the list$, save$, load$ commands. Loaded by
+    // package name: 'entity' finds seneca-entity before @seneca/entity, and
+    // npm may install seneca-entity 28 (a peer dependency of
+    // @seneca/entity-util), which does not load on Seneca 4.0.0.
+    .use('@seneca/entity')
     .use(Shop)
     .use(discount)
     .use(Repl, { listen: false })

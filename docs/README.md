@@ -7,8 +7,8 @@ specific tasks; look things up in the reference; read the explanations
 to understand the design.
 
 The plugin gives a running Seneca service an interactive REPL. It works
-with Seneca 4 (4.0.0-rc5 and later) and Seneca 3 (3.38 tested), on
-Node.js 24 and 22.
+with Seneca 4 (4.0.0-rc5 and later; 4.0.0 and 4.0.0-rc5 tested) and
+Seneca 3 (3.38 tested), on Node.js 24 and 22.
 
 ## Tutorials
 

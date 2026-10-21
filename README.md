@@ -23,8 +23,8 @@ Works with Seneca 4 (tested with 4.0.0-rc5 and 4.0.0) and Seneca 3
 npm install seneca @seneca/repl
 ```
 
-`seneca` is a peer dependency (`>=3 || >=4.0.0-rc5`). Seneca 4 needs
-Node.js 22 or later; the tests run on Node.js 24 and 22.
+`seneca` is a peer dependency (`>=3 || >=4.0.0-rc5`). Seneca 4.0.0 needs
+Node.js 24 or later; the tests run on Node.js 24 and 22.
 
 The package also installs the `seneca-repl` client. Run it with
 `npx seneca-repl` in your project, or install it globally:
@@ -61,16 +61,15 @@ Start the service, then connect from another terminal:
 ```
 $ npx seneca-repl
 Connected to Seneca: {
-  version: '4.0.0-rc5',
-  id: 'ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-',
-  when: 1791443562678,
+  version: '4.0.0',
+  id: 'j62i1r8pnt29/1792608561105/14299/4.0.0/-',
+  when: 1792608561325,
   address: { address: '127.0.0.1', family: 'IPv4', port: 30303 }
 }
-ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-> role:shop,cmd:price,item:apple
-
+j62i1r8pnt29/1792608561105/14299/4.0.0/-> role:shop,cmd:price,item:apple
 { item: 'apple', price: 1.5 }
 
-ckp1pf27feju/1791443560863/22827/4.0.0-rc5/-> quit
+j62i1r8pnt29/1792608561105/14299/4.0.0/-> quit
 ```
 
 The prompt is the identifier of the Seneca instance. Type `quit` to
@@ -155,9 +154,9 @@ documentation, examples, extra testing, or new features, please get in
 touch.
 
 The plugin is written in TypeScript (`src/`) and compiled to `dist/`,
-which is committed. The tests use jest and run against the Seneca 4
-prerelease (devDependency `seneca@^4.0.0-rc5`). Node.js 24 is the
-default target; Node.js 22 is also tested.
+which is committed. The tests use jest and run against Seneca 4
+(devDependency `seneca@^4.0.0-rc5`, which installs 4.0.0 or a later 4.x
+release). Node.js 24 is the default target; Node.js 22 is also tested.
 
 ```sh
 npm install
@@ -166,9 +165,9 @@ npm test
 ```
 
 To test against another Seneca version, install it without saving, for
-example `npm install --no-save seneca@3`, run `npm test`, then run
-`npm install` again. `npm run maintain` runs the Seneca repository
-hygiene checks.
+example `npm install --no-save seneca@3` (or `seneca@4.0.0-rc5`), run
+`npm test`, then run `npm install` again. `npm run maintain` runs the
+Seneca repository hygiene checks.
 
 The continuous integration workflow change (Node.js 24 and 22) is
 provided as a patch in [.patches](.patches/README.md), because workflow
@@ -185,10 +184,10 @@ Version 9.2 adds support for Seneca 4. See the [change log](CHANGES.md).
 
 | @seneca/repl | Seneca | Node.js |
 | ------------ | ------ | ------- |
-| 9.2 | 4 (4.0.0-rc5 and later) and 3 (3.38 tested) | 24, 22 |
+| 9.2 | 4 (4.0.0-rc5 and later; 4.0.0 and 4.0.0-rc5 tested) and 3 (3.38 tested) | 24, 22 |
 | 9.1 and earlier | 3 | |
 
-Seneca 4 needs Node.js 22 or later. See
+Seneca 4.0.0 needs Node.js 24 or later. See
 [Seneca 3 and Seneca 4](docs/explanation/seneca-3-and-4.md) for the
 differences that matter to REPL users.
 

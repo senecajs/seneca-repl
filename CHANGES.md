@@ -70,12 +70,14 @@ Node.js 24 and 22.
   and close every instance they create.
 * TypeScript 5.9 and @types/node 24 (TypeScript 5.4 cannot compile with
   the current Node.js types).
-* devDependencies: seneca@^4.0.0-rc5, seneca-entity@^28.1.0 (26 did not
-  install next to @seneca/entity-util 3). Removed the packages that no
-  build, test or example uses: @aws-sdk/client-lambda (still loaded by
-  the client for `aws:` addresses when installed), @seneca/gateway-auth,
-  @seneca/owner, @seneca/user, seneca-doc and seneca-mem-store. Removed
-  the `doc` script.
+* devDependencies: seneca@^4.0.0-rc5, @seneca/entity@^29.0.0 (the
+  entity plugin's new name; seneca-entity 28 does not load on Seneca
+  4.0.0, and 26 did not install next to @seneca/entity-util 3). Removed
+  the packages that no build, test or example uses:
+  @aws-sdk/client-lambda (still loaded by the client for `aws:`
+  addresses when installed), @seneca/gateway-auth, @seneca/owner,
+  @seneca/user, seneca-doc and seneca-mem-store. Removed the `doc`
+  script.
 * `npm run maintain` runs the @seneca/maintain checks.
 * Removed `.travis.yml`. The GitHub Actions change (a Node.js 24 and 22
   matrix) is provided as a patch in `.patches/`.

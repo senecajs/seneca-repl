@@ -97,7 +97,7 @@ node lambda-handler.js
 ```
 {
   statusCode: 200,
-  body: `{"ok":true,"out":"'{\\"version\\":\\"4.0.0-rc5\\",\\"id\\":\\"s3nwl1okpsah/1791443375956/21578/4.0.0-rc5/-\\",\\"when\\":1791443376129}'\\n"}`
+  body: `{"ok":true,"out":"'{\\"version\\":\\"4.0.0\\",\\"id\\":\\"exx4xl6xmnsq/1792608638289/14987/4.0.0/-\\",\\"when\\":1792608638493}'\\n"}`
 }
 {
   statusCode: 200,
