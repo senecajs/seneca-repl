@@ -136,10 +136,7 @@ const SetCmd: Cmd = (spec: CmdSpec) => {
     context.seneca.options(setopt)
 
     if (setopt.repl) {
-      Object.assign(
-        options,
-        context.seneca.util.deepextend(options, setopt.repl),
-      )
+      Object.assign(options, context.seneca.util.deep(options, setopt.repl))
     }
 
     return respond()

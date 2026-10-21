@@ -109,7 +109,7 @@ const SetCmd = (spec) => {
         let setopt = (0, utils_1.parseOption)(m[1], context.seneca.util.Jsonic('$:' + m[2]).$);
         context.seneca.options(setopt);
         if (setopt.repl) {
-            Object.assign(options, context.seneca.util.deepextend(options, setopt.repl));
+            Object.assign(options, context.seneca.util.deep(options, setopt.repl));
         }
         return respond();
     }

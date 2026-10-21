@@ -397,7 +397,11 @@ describe('repl', function () {
           // .test()
           .quiet()
           .use('promisify')
-          .use('entity')
+          // By package name: @seneca/entity-util declares a peer dependency
+          // on seneca-entity, so npm may install seneca-entity 28 (which
+          // does not load on Seneca 4), and 'entity' finds seneca-entity
+          // before @seneca/entity.
+          .use('@seneca/entity')
           .use('entity-util', { when: { active: true } })
           .add('a:1', function (msg, reply) {
             reply({ x: msg.x })
