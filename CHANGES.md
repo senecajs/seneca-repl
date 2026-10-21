@@ -1,9 +1,9 @@
 # Change log
 
-## 9.2.0 2026-10-08
+## 9.2.0 2026-10-21
 
-Seneca 4 support. Tested with seneca@4.0.0-rc5, the unreleased 4.0.0
-(Seneca master) and 3.38, on Node.js 24 and 22.
+Seneca 4 support. Tested with Seneca 4.0.0, 4.0.0-rc5 and 3.38, on
+Node.js 24 and 22.
 
 ### Seneca 4
 
@@ -16,10 +16,17 @@ Seneca 4 support. Tested with seneca@4.0.0-rc5, the unreleased 4.0.0
 * The TCP port is opened in a callback style init function, and the
   close hook is a callback style action, so the plugin no longer needs
   seneca-promisify on Seneca 3.
-* The option shape is built with the Gubu builders of the Seneca
-  instance that loads the plugin (`defaults` is a function of
-  `{ valid }`), instead of an import of `gubu`, which was not a declared
-  dependency. Seneca 4 uses Gubu 9, Seneca 3.38 Gubu 8.
+* The option shape is built with the builders of the Seneca instance
+  that loads the plugin (`defaults` is a function of `{ valid }`),
+  instead of an import of `gubu`, which was not a declared dependency:
+  shape on Seneca 4.0.0, which rejects option defaults built with Gubu,
+  and Gubu 9 on 4.0.0-rc5 and Seneca 3.38.
+* The `set` command uses `seneca.util.deep` instead of
+  `seneca.util.deepextend`, which Seneca 4 deprecates; they are the same
+  function.
+* The tests and examples load the entity plugin from `@seneca/entity`
+  ^29.0.0 (a development dependency): seneca-entity 28 does not load on
+  Seneca 4.0.0.
 * The plugin error codes `unknown-repl`, `invalid-status` and
   `invalid-cmd` have messages.
 
