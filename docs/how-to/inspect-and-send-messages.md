@@ -2,8 +2,9 @@
 
 How to use a REPL session to send messages, keep their results, follow
 them through the service, and look at patterns, logs and entities. The
-outputs below come from [docs/examples/inspect.js](../examples/inspect.js),
-which runs these lines in a session:
+outputs below, from Seneca 4.0.0, come from
+[docs/examples/inspect.js](../examples/inspect.js), which runs these lines
+in a session:
 
 ```sh
 node inspect.js
@@ -11,7 +12,7 @@ node inspect.js
 
 The example service has the `shop` plugin from the tutorials, a
 `discount` plugin that overrides `role:shop,cmd:price` (so the original
-action becomes its *prior*), and seneca-entity.
+action becomes its *prior*), and the entity plugin, @seneca/entity.
 
 ## Send a message
 
@@ -109,9 +110,9 @@ can pair them:
 undefined
 
 > role:shop,cmd:order,item:apple,quantity:2
-IN  000000: { role: 'shop', cmd: 'order', item: 'apple', quantity: 2 } # q9zxrhi35kg2/lue8t4eulzso cmd:order,role:shop shop/action/28 
-IN  000001: { item: 'apple', role: 'shop', cmd: 'price' } # 5tbh0fpgszd6/lue8t4eulzso cmd:price,role:shop discount/action/29 
-IN  000002: { item: 'apple', role: 'shop', cmd: 'price' } # 9skn34hs6xyf/lue8t4eulzso cmd:price,role:shop shop/action/27 
+IN  000000: { role: 'shop', cmd: 'order', item: 'apple', quantity: 2 } # trgy4bc2ef8k/xbv2h28mosei cmd:order,role:shop shop/action/28 
+IN  000001: { item: 'apple', role: 'shop', cmd: 'price' } # v9ki1y80jg9h/xbv2h28mosei cmd:price,role:shop discount/action/29 
+IN  000002: { item: 'apple', role: 'shop', cmd: 'price' } # t3g09lsbbsxr/xbv2h28mosei cmd:price,role:shop shop/action/27 
 OUT 000002: { item: 'apple', price: 1.5 }
 OUT 000001: { item: 'apple', price: 1.35 }
 OUT 000000: { item: 'apple', quantity: 2, total: 2.7 }
@@ -138,8 +139,8 @@ session's inspection depth, so lower the depth first:
 undefined
 
 > role:shop,cmd:price,item:apple
-LOG: {   actid: 'qpivw2tfcv76/7o6pdcvd0qi7',   msg: [Object],   meta: [Meta],   entry: undefined,   prior: undefined,   gate: undefined,   caller: undefined,   actdef: [Object],   client: false,   listen: false,   transport: {},   kind: 'act',   case: 'OUT',   duration: 0,   res: [Object],   did: 'n0xw~repl$/rwei/gw0c',   level: 200,   isot: '2026-10-08T07:09:35.666Z',   when: 1791443375666,   level_name: 'debug',   seneca_id: 'rlrj89wfan75/1791443375445/21569/4.0.0-rc5/-',   seneca_did: 'n0xw~repl$/rwei/gw0c',   plugin_name: 'discount',   plugin_tag: '-',   pattern: 'cmd:price,role:shop',   action: 'shop/action/27',   idpath: '7o6pd.xrbom.qpivw' }
-LOG: {   actid: 'xrbomgebkxk2/7o6pdcvd0qi7',   ... }
+LOG: {   actid: 'p3tyav47dyzu/l4crz7vjyccs',   msg: [Object],   meta: [Meta],   entry: undefined,   prior: undefined,   gate: undefined,   caller: undefined,   actdef: [Object],   client: false,   listen: false,   transport: {},   kind: 'act',   case: 'OUT',   duration: 0,   res: [Object],   did: 'c3ub~repl$/z99r/emoz',   level: 200,   isot: '2026-10-21T18:43:55.726Z',   when: 1792608235726,   level_name: 'debug',   seneca_id: 't6j1mjdo2ykt/1792608235484/11870/4.0.0/-',   seneca_did: 'c3ub~repl$/z99r/emoz',   plugin_name: 'discount',   plugin_tag: '-',   pattern: 'cmd:price,role:shop',   action: 'shop/action/27',   idpath: 'l4crz7.mq80lc.p3tyav' }
+LOG: {   actid: 'mq80lc4jgncv/l4crz7vjyccs',   ... }
 { item: 'apple', price: 1.35 }
 
 > log
@@ -162,12 +163,12 @@ instance:
 > delegate ops {channel:ops}
 {
   isSeneca: true,
-  id: 'rlrj89wfan75/1791443375445/21569/4.0.0-rc5/-',
-  did: 'n0xw~repl$/dy8j~ops',
+  id: 't6j1mjdo2ykt/1792608235484/11870/4.0.0/-',
+  did: 'c3ub~repl$/yr9s~ops',
   fixedargs: { 'repl$': true, 'fatal$': false, channel: 'ops' },
   fixedmeta: {},
-  start_time: 1791443375445,
-  version: '4.0.0-rc5'
+  start_time: 1792608235484,
+  version: '4.0.0'
 }
 
 > sys:repl,echo:true,x:1
@@ -190,7 +191,8 @@ by the session. The full syntax is in
 
 ## Work with entities
 
-With [seneca-entity](https://github.com/senecajs/seneca-entity) loaded,
+With the entity plugin,
+[@seneca/entity](https://github.com/senecajs/seneca-entity), loaded,
 `list$`, `load$`, `save$` and `remove$` take an entity name
 (`name`, `base/name` or `zone/base/name`) and an optional Jsonic query
 or data; `entity$ <name>` prints an empty entity of that kind:
@@ -201,7 +203,7 @@ Entity {
   'entity$': '-/-/fruit',
   name: 'apple',
   stock: 10,
-  id: 'k20vj3'
+  id: '8mg9lw'
 }
 
 > list$ fruit
@@ -210,7 +212,7 @@ Entity {
     'entity$': '-/-/fruit',
     name: 'apple',
     stock: 10,
-    id: 'k20vj3'
+    id: '8mg9lw'
   }
 ]
 ```

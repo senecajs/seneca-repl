@@ -32,7 +32,7 @@ const Repl = require('@seneca/repl')
 
 | Property | Value |
 | -------- | ----- |
-| `Repl.defaults` | A function `({ valid }) => shape` that returns the option shape, built with the Gubu builders of the Seneca instance that loads the plugin. See [Options](options.md). |
+| `Repl.defaults` | A function `({ valid }) => shape` that returns the option shape, built with the builders of the Seneca instance that loads the plugin: [shape](https://github.com/rjrodger/shape) on Seneca 4.0.0, Gubu on 4.0.0-rc5 and Seneca 3. See [Options](options.md). |
 | `Repl.errors` | The error code map: `unknown-repl`, `invalid-status`, `invalid-cmd`. See [Errors](errors.md). |
 | `Repl.Cmds` | The built in command functions, by function name: `HelloCmd`, `GetCmd`, `DepthCmd`, `PlainCmd`, `ListCmd`, `FindCmd`, `PriorCmd`, `HistoryCmd`, `LogCmd`, `SetCmd`, `AliasCmd`, `TraceCmd`, `HelpCmd`, `DelegateCmd`, `DataCmd`, `List$Cmd`, `Load$Cmd`, `Save$Cmd`, `Remove$Cmd`, `Entity$Cmd`. The command name is the function name without `Cmd`, in lower case. |
 | `Repl.intern` | Internal helpers used by the sessions. Not a stable API. |

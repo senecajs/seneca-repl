@@ -269,8 +269,9 @@ function make_intern() {
         },
     };
 }
-// Use the Gubu shape builders of the Seneca instance that loads the plugin,
-// so that the shape is always built by the Gubu version Seneca itself uses.
+// Use the shape builders of the Seneca instance that loads the plugin, so
+// that the shape is built by the validator Seneca itself uses: shape on
+// Seneca 4, Gubu on Seneca 3. Seneca 4 rejects Gubu shapes.
 repl.defaults = function (spec) {
     const { Open } = spec.valid;
     return {

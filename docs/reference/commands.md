@@ -166,9 +166,11 @@ created), `ERROR: delegate already exists: <name>`,
 
 ### Entity commands
 
-These need [seneca-entity](https://github.com/senecajs/seneca-entity).
-`<canon>` is an entity name: `name`, `base/name` or `zone/base/name`.
-The optional query or data is Jsonic.
+These need the entity plugin,
+[@seneca/entity](https://github.com/senecajs/seneca-entity) (published as
+seneca-entity up to version 28.1.0; seneca-entity 28 does not load on
+Seneca 4.0.0). `<canon>` is an entity name: `name`, `base/name` or
+`zone/base/name`. The optional query or data is Jsonic.
 
 | Command | Same as |
 | ------- | ------- |

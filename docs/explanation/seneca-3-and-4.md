@@ -32,13 +32,17 @@ needs no extra plugin on either version.
 
 ## Option shapes
 
-The plugin's options are checked by Seneca with
-[Gubu](https://github.com/rjrodger/gubu). Seneca 4 uses Gubu 9 and
-Seneca 3.38 uses Gubu 8, and a shape built by one copy of Gubu should
-not be handed to another. So the plugin's `defaults` is a function that
-receives the loading instance's builders (`{ valid }`) and builds the
-shape with them. Earlier versions imported `gubu` themselves, without
-declaring it as a dependency.
+The plugin's options are checked by Seneca against a shape. Seneca 4.0.0
+validates with [shape](https://github.com/rjrodger/shape) 11, the renamed
+successor of [Gubu](https://github.com/rjrodger/gubu), and rejects option
+defaults built with Gubu (the fatal error `plugin_gubu_shape`).
+Seneca 4.0.0-rc5 and Seneca 3.38 validate with Gubu 9. So the plugin's
+`defaults` is a function that receives the loading instance's builders
+(`{ valid }`) and builds the shape with them: shape builders on 4.0.0,
+Gubu builders on 4.0.0-rc5 and 3.38. The same code loads on all three.
+Earlier versions built the shape with their own import of `gubu`, which
+they did not declare as a dependency; Seneca 4.0.0 rejects that shape,
+so those versions do not load on it.
 
 Seneca 4 reads plugin options only from `use` and `options.plugin`; a
 top level `repl` option is an error there.
@@ -59,8 +63,8 @@ client and the protocols.
 
 ## Node.js
 
-Seneca 4 needs Node.js 22 or later. The plugin and its client are
-tested on Node.js 24 and 22.
+Seneca 4.0.0 needs Node.js 24 or later; 4.0.0-rc5 also runs on
+Node.js 22. The plugin and its client are tested on Node.js 24 and 22.
 
 ## See also
 

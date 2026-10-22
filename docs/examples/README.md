@@ -5,7 +5,7 @@ file loads the plugin from this repository (`require('../..')`); in your
 own project use `require('@seneca/repl')`, or `seneca.use('repl')`.
 
 Run them with Node.js 22 or later after `npm install` in the repository
-(seneca-entity, used by `inspect.js`, is a development dependency):
+(@seneca/entity, used by `inspect.js`, is a development dependency):
 
 ```sh
 node docs/examples/getting-started.js
