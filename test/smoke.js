@@ -16,8 +16,7 @@ async function run() {
       // .error((err)=>{
       //   console.log('=======ERROR', err.message)
       // })
-      .use('promisify')
-      .use('entity')
+      .use('@seneca/entity')
       // .use('..', {listen:false})
       .use('..')
       // .use('..', {listen:false})

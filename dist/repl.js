@@ -31,13 +31,10 @@ function repl(options) {
     seneca.add('sys:repl,send:cmd', send_cmd);
     seneca.add('sys:repl,add:cmd', add_cmd);
     seneca.add('sys:repl,echo:true', (msg, reply) => reply(msg));
-    // Seneca 3 closes via role:seneca,cmd:close; Seneca 4 via sys:seneca,cmd:close.
-    const close_pattern = seneca.version.startsWith('3.')
-        ? 'role:seneca,cmd:close'
-        : 'sys:seneca,cmd:close';
-    seneca.add(close_pattern, cmd_close);
-    // Callback style init so that the plugin works on Seneca 3 without
-    // seneca-promisify, and on Seneca 4.
+    // A prior of the close action: seneca.close() closes the sessions and the
+    // TCP server.
+    seneca.add('sys:seneca,cmd:close', cmd_close);
+    // Callback style init: the TCP port is open when done is called.
     seneca.init(function (done) {
         if (!options.listen) {
             return done();
@@ -270,8 +267,7 @@ function make_intern() {
     };
 }
 // Use the shape builders of the Seneca instance that loads the plugin, so
-// that the shape is built by the validator Seneca itself uses: shape on
-// Seneca 4, Gubu on Seneca 3. Seneca 4 rejects Gubu shapes.
+// that the shape is built by the validator Seneca itself uses (shape).
 repl.defaults = function (spec) {
     const { Open } = spec.valid;
     return {
