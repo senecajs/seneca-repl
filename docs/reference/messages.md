@@ -90,7 +90,6 @@ The plugin also takes part in two Seneca lifecycle actions:
 | Pattern | What the plugin does |
 | ------- | -------------------- |
 | `role:seneca,plugin:init,init:repl` | Its init function opens the TCP server when `listen` is true and replies when the server is listening. A listen error (such as `EADDRINUSE`) is a fatal plugin initialization error. |
-| `sys:seneca,cmd:close` (Seneca 4), `role:seneca,cmd:close` (Seneca 3) | A prior that closes every session and then the TCP server, and then continues the close. Called by `seneca.close()`. |
+| `sys:seneca,cmd:close` | A prior that closes every session and then the TCP server, and then continues the close. Called by `seneca.close()`. |
 
-The plugin chooses the close pattern from `seneca.version`. See
-[Seneca 3 and Seneca 4](../explanation/seneca-3-and-4.md).
+See [Seneca 3 and Seneca 4](../explanation/seneca-3-and-4.md#closing).

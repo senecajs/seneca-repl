@@ -1,32 +1,35 @@
 # Change log
 
-## 9.2.0 2026-10-21
+## 10.0.0 2026-11-20
 
-Seneca 4 support. Tested with Seneca 4.0.0, 4.0.0-rc5 and 3.38, on
-Node.js 24 and 22.
+Seneca 4 support. This release supports Seneca 4 only: Seneca 3 users
+stay on `@seneca/repl@9` (9.1.0). Version 9.2.0 was prepared but never
+published; its changes are part of this release.
 
 ### Seneca 4
 
-* `seneca` is a peer dependency: `>=3 || >=4.0.0-rc5`.
-* The close hook is registered on `sys:seneca,cmd:close` on Seneca 4
-  (`role:seneca,cmd:close` on Seneca 3), so `seneca.close()` closes the
-  REPL sessions and the TCP port. With 9.1.0 on Seneca 4.0.0-rc5 the
-  hook was never called: the port stayed open and the process did not
-  exit.
+* Breaking: `seneca` is a peer dependency with the range `^4.0.0`.
+  Seneca 3 is no longer supported.
+* Breaking: Node.js 24 or later (`engines.node` `>=24`).
+* The close hook is a prior of `sys:seneca,cmd:close`, so
+  `seneca.close()` closes the REPL sessions and the TCP port. 9.1.0
+  registered it on the Seneca 3 pattern `role:seneca,cmd:close` only:
+  on Seneca 4.0.0-rc5 it was never called, so the port stayed open and
+  the process did not exit.
 * The TCP port is opened in a callback style init function, and the
-  close hook is a callback style action, so the plugin no longer needs
-  seneca-promisify on Seneca 3.
+  close hook is a callback style action. The plugin does not need
+  seneca-promisify.
 * The option shape is built with the builders of the Seneca instance
   that loads the plugin (`defaults` is a function of `{ valid }`),
-  instead of an import of `gubu`, which was not a declared dependency:
-  shape on Seneca 4.0.0, which rejects option defaults built with Gubu,
-  and Gubu 9 on 4.0.0-rc5 and Seneca 3.38.
+  instead of an import of `gubu`, which was not a declared dependency.
+  Seneca 4.0.0 validates with shape and rejects option defaults built
+  with Gubu.
 * The `set` command uses `seneca.util.deep` instead of
   `seneca.util.deepextend`, which Seneca 4 deprecates; they are the same
   function.
-* The tests and examples load the entity plugin from `@seneca/entity`
-  ^29.0.0 (a development dependency): seneca-entity 28 does not load on
-  Seneca 4.0.0.
+* The tests and examples load the entity plugin by its package name,
+  `@seneca/entity` ^29.0.0 (a development dependency): seneca-entity 28
+  does not load on Seneca 4.0.0.
 * The plugin error codes `unknown-repl`, `invalid-status` and
   `invalid-cmd` have messages.
 
@@ -64,23 +67,25 @@ Node.js 24 and 22.
 
 ### Development
 
-* Tests use jest 29, on Node.js 24 and 22. New tests for concurrent
-  TCP sessions, close with connected clients, the default id, the error
-  codes, `trace`, `log` and `.clear`. Tests listen on `127.0.0.1` only
-  and close every instance they create.
+* Tests use jest 29. New tests for concurrent TCP sessions, close with
+  connected clients, the default id, the error codes, `trace`, `log` and
+  `.clear`. Tests listen on `127.0.0.1` only and close every instance
+  they create. They load plugins by package name, use the `define`
+  property for tagged plugin definitions, and no longer load promisify.
 * TypeScript 5.9 and @types/node 24 (TypeScript 5.4 cannot compile with
   the current Node.js types).
-* devDependencies: seneca@^4.0.0-rc5, @seneca/entity@^29.0.0 (the
-  entity plugin's new name; seneca-entity 28 does not load on Seneca
-  4.0.0, and 26 did not install next to @seneca/entity-util 3). Removed
-  the packages that no build, test or example uses:
-  @aws-sdk/client-lambda (still loaded by the client for `aws:`
-  addresses when installed), @seneca/gateway-auth, @seneca/owner,
-  @seneca/user, seneca-doc and seneca-mem-store. Removed the `doc`
-  script.
+* devDependencies: seneca@^4.0.0, @seneca/entity@^29.0.0 (the entity
+  plugin's new name; seneca-entity 28 does not load on Seneca 4.0.0),
+  @seneca/entity-util@^4.0.0. Removed seneca-promisify, and the packages
+  that no build, test or example uses: @aws-sdk/client-lambda (still
+  loaded by the client for `aws:` addresses when installed),
+  @seneca/gateway-auth, @seneca/owner, @seneca/user, seneca-doc and
+  seneca-mem-store. Removed the `doc` script.
 * `npm run maintain` runs the @seneca/maintain checks.
-* Removed `.travis.yml`. The GitHub Actions change (a Node.js 24 and 22
-  matrix) is provided as a patch in `.patches/`.
+* Removed `.travis.yml`. A GitHub Actions change is provided as a patch
+  in `.patches/`.
+* The variable that holds the fixed message properties of a new
+  delegate is named `fixedmsg`, as in Seneca 4.
 * The published package includes `docs/` and `CHANGES.md`.
 
 ### Documentation

@@ -165,7 +165,7 @@ instance:
   isSeneca: true,
   id: 't6j1mjdo2ykt/1792608235484/11870/4.0.0/-',
   did: 'c3ub~repl$/yr9s~ops',
-  fixedargs: { 'repl$': true, 'fatal$': false, channel: 'ops' },
+  fixedmsg: { 'repl$': true, 'fatal$': false, channel: 'ops' },
   fixedmeta: {},
   start_time: 1792608235484,
   version: '4.0.0'

@@ -13,7 +13,7 @@ directory:
 
 ```sh
 npm init -y
-npm install seneca @seneca/repl
+npm install seneca@^4 @seneca/repl
 ```
 
 ## 2. Write a service

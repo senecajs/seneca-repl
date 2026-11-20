@@ -8,8 +8,7 @@ plugins and options, trace messages, work with data entities, and run
 JavaScript against the live Seneca instance. Sessions are reached over a
 local TCP port with the `seneca-repl` command line client, over HTTP or
 AWS Lambda through your own endpoint, or directly with Seneca messages.
-Works with Seneca 4 (tested with 4.0.0-rc5 and 4.0.0) and Seneca 3
-(tested with 3.38).
+Version 10 works with Seneca 4; for Seneca 3, use version 9.
 
 [![npm version](https://img.shields.io/npm/v/@seneca/repl.svg)](https://npmjs.com/package/@seneca/repl)
 [![build](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml/badge.svg)](https://github.com/senecajs/seneca-repl/actions/workflows/build.yml)
@@ -20,11 +19,11 @@ Works with Seneca 4 (tested with 4.0.0-rc5 and 4.0.0) and Seneca 3
 ## Install
 
 ```sh
-npm install seneca @seneca/repl
+npm install seneca@^4 @seneca/repl
 ```
 
-`seneca` is a peer dependency (`>=3 || >=4.0.0-rc5`). Seneca 4.0.0 needs
-Node.js 24 or later; the tests run on Node.js 24 and 22.
+`seneca` is a peer dependency (`^4.0.0`). The plugin, like Seneca 4,
+needs Node.js 24 or later.
 
 The package also installs the `seneca-repl` client. Run it with
 `npx seneca-repl` in your project, or install it globally:
@@ -155,8 +154,7 @@ touch.
 
 The plugin is written in TypeScript (`src/`) and compiled to `dist/`,
 which is committed. The tests use jest and run against Seneca 4
-(devDependency `seneca@^4.0.0-rc5`, which installs 4.0.0 or a later 4.x
-release). Node.js 24 is the default target; Node.js 22 is also tested.
+(devDependency `seneca@^4.0.0`), on Node.js 24 or later.
 
 ```sh
 npm install
@@ -164,15 +162,11 @@ npm run build
 npm test
 ```
 
-To test against another Seneca version, install it without saving, for
-example `npm install --no-save seneca@3` (or `seneca@4.0.0-rc5`), run
-`npm test`, then run `npm install` again. `npm run maintain` runs the
-Seneca repository hygiene checks.
+`npm run maintain` runs the Seneca repository hygiene checks.
 
-The continuous integration workflow change (Node.js 24 and 22) is
-provided as a patch in [.patches](.patches/README.md), because workflow
-files cannot be pushed without extra permissions. Apply it with
-`git am .patches/*.patch`.
+A continuous integration workflow change is provided as a patch in
+[.patches](.patches/README.md), because workflow files cannot be pushed
+without extra permissions. Apply it with `git am .patches/*.patch`.
 
 ## Background
 
@@ -180,14 +174,15 @@ The REPL is one of the oldest Seneca plugins. Version 6 (2023) rebuilt
 it around Node.js streams, marked the end of each response with a NUL
 character, and added the entity commands and the HTTP and AWS Lambda
 connections; the release notes are in [doc/](doc/version-6-release-pub.md).
-Version 9.2 adds support for Seneca 4. See the [change log](CHANGES.md).
+Version 10 supports Seneca 4, and only Seneca 4. See the
+[change log](CHANGES.md).
 
 | @seneca/repl | Seneca | Node.js |
 | ------------ | ------ | ------- |
-| 9.2 | 4 (4.0.0-rc5 and later; 4.0.0 and 4.0.0-rc5 tested) and 3 (3.38 tested) | 24, 22 |
+| 10 | 4 | 24 or later |
 | 9.1 and earlier | 3 | |
 
-Seneca 4.0.0 needs Node.js 24 or later. See
+See
 [Seneca 3 and Seneca 4](docs/explanation/seneca-3-and-4.md) for the
 differences that matter to REPL users.
 
