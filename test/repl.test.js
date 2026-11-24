@@ -14,11 +14,6 @@ const Plugin = require('..')
 
 const Seneca = require('seneca')
 
-// Seneca 3 names the builtin actions role:seneca, Seneca 4 sys:seneca.
-const SYS = require('seneca/package.json').version.startsWith('3.')
-  ? 'role'
-  : 'sys'
-
 // const lab = (exports.lab = Lab.script())
 // const describe = lab.describe
 // const it = lab.it
@@ -28,7 +23,7 @@ const { Cmds } = Plugin
 
 describe('repl', function () {
   it('start', async function () {
-    const si = Seneca().use('promisify').test()
+    const si = Seneca().test()
 
     await si.use(Plugin).ready()
 
@@ -36,15 +31,15 @@ describe('repl', function () {
   })
 
   it('multiple', async function () {
-    const si = Seneca().use('promisify').test()
+    const si = Seneca().test()
 
     await si
       .use(
-        { tag: 'a', init: Plugin },
+        { tag: 'a', define: Plugin },
         { host: '127.0.0.1', port: 60606, depth: 1 },
       )
       .use(
-        { tag: 'b', init: Plugin },
+        { tag: 'b', define: Plugin },
         { host: '127.0.0.1', port: 50505, depth: 1 },
       )
       .ready()
@@ -75,13 +70,12 @@ describe('repl', function () {
           expect(err.message).toContain('EADDRINUSE')
           resolve()
         })
-          .use('promisify')
           .use(
-            { tag: 'a', init: Plugin },
+            { tag: 'a', define: Plugin },
             { host: '127.0.0.1', port: 60606, depth: 1 },
           )
           .use(
-            { tag: 'b', init: Plugin },
+            { tag: 'b', define: Plugin },
             { host: '127.0.0.1', port: 60606, depth: 1 },
           )
           // .use('..$a', { host: '127.0.0.1', port: 60606, depth: 1 })
@@ -148,11 +142,7 @@ describe('repl', function () {
   })
 
   it('happy', async function () {
-    const si = await Seneca()
-      .use('promisify')
-      .test()
-      .use(Plugin, { port: 0 })
-      .ready()
+    const si = await Seneca().test().use(Plugin, { port: 0 }).ready()
 
     const addr = si.export('repl/address')
     // console.log('ADDR', addr)
@@ -204,11 +194,7 @@ describe('repl', function () {
   })
 
   it('cmd-msg', async function () {
-    let si = await Seneca()
-      .use('promisify')
-      .test()
-      .use(Plugin, { port: 0 })
-      .ready()
+    let si = await Seneca().test().use(Plugin, { port: 0 }).ready()
 
     let replres0 = await si.post('sys:repl,use:repl', { id: 'foo' })
 
@@ -296,7 +282,7 @@ describe('repl', function () {
   })
 
   it('msg-default-id-and-errors', async function () {
-    const si = Seneca().use('promisify').test().quiet()
+    const si = Seneca().test().quiet()
     await new Promise((resolve) =>
       si.use(Plugin, { listen: false }).ready(resolve),
     )
@@ -342,7 +328,7 @@ describe('repl', function () {
   })
 
   it('two-clients', async function () {
-    const si = Seneca().use('promisify').test()
+    const si = Seneca().test()
     await new Promise((resolve) => si.use(Plugin, { port: 0 }).ready(resolve))
     const addr = si.export('repl/address')
 
@@ -396,9 +382,12 @@ describe('repl', function () {
         Seneca({ legacy: false })
           // .test()
           .quiet()
-          .use('promisify')
-          .use('entity')
-          .use('entity-util', { when: { active: true } })
+          // By package name: Seneca tries the prefix seneca- first, so
+          // 'entity' would load seneca-entity (28 does not load on Seneca 4)
+          // wherever it is installed. @seneca/entity-util 4 no longer has a
+          // seneca-entity peer dependency that would install it.
+          .use('@seneca/entity')
+          .use('@seneca/entity-util', { when: { active: true } })
           .add('a:1', function (msg, reply) {
             reply({ x: msg.x })
           })
@@ -447,7 +436,7 @@ describe('repl', function () {
               },
               {
                 send: 'list\n',
-                expect: "{ cmd: 'close', " + SYS + ": 'seneca' }",
+                expect: "{ cmd: 'close', sys: 'seneca' }",
               },
               {
                 send: 'stats\n',
@@ -455,7 +444,7 @@ describe('repl', function () {
               },
               {
                 send: 'list\n',
-                expect: SYS + ": 'seneca'",
+                expect: "sys: 'seneca'",
               },
               {
                 send: 'a:1,x:2\n',

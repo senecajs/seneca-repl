@@ -137,23 +137,20 @@ npx seneca-repl http://127.0.0.1:8080/seneca-repl
 
 ```
 Connected to Seneca: {
-  version: '4.0.0-rc5',
-  id: 'jzuq2vvg9v2r/1791442914365/15712/4.0.0-rc5/-',
-  when: 1791442915826
+  version: '4.0.0',
+  id: 'z02gxrcouefn/1792608622030/14875/4.0.0/-',
+  when: 1792608622373
 }
-jzuq2vvg9v2r/1791442914365/15712/4.0.0-rc5/-> role:shop,cmd:price,item:pear
-
+z02gxrcouefn/1792608622030/14875/4.0.0/-> role:shop,cmd:price,item:pear
 { item: 'pear', price: 2.25 }
 
-jzuq2vvg9v2r/1791442914365/15712/4.0.0-rc5/-> seen = (typeof seen === "number" ? seen : 0) + 1
-
+z02gxrcouefn/1792608622030/14875/4.0.0/-> seen = (typeof seen === "number" ? seen : 0) + 1
 1
 
-jzuq2vvg9v2r/1791442914365/15712/4.0.0-rc5/-> seen
-
+z02gxrcouefn/1792608622030/14875/4.0.0/-> seen
 1
 
-jzuq2vvg9v2r/1791442914365/15712/4.0.0-rc5/-> quit
+z02gxrcouefn/1792608622030/14875/4.0.0/-> quit
 ```
 
 The banner has no `address`: the session is not attached to a network

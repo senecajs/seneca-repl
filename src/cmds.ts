@@ -136,10 +136,7 @@ const SetCmd: Cmd = (spec: CmdSpec) => {
     context.seneca.options(setopt)
 
     if (setopt.repl) {
-      Object.assign(
-        options,
-        context.seneca.util.deepextend(options, setopt.repl),
-      )
+      Object.assign(options, context.seneca.util.deep(options, setopt.repl))
     }
 
     return respond()
@@ -308,19 +305,19 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
 
   let name = args[0]
   let fromDelegateName = args[1]
-  let fixedargs = args[2]
+  let fixedmsg = args[2]
   let fixedmeta = args[3]
 
   if ('string' != typeof fromDelegateName) {
     fromDelegateName = null
-    fixedargs = args[1]
+    fixedmsg = args[1]
     fixedmeta = args[2]
   }
 
   let delegate = context.delegate[name]
 
   // Just name.
-  if (null == fixedargs && null == fixedmeta) {
+  if (null == fixedmsg && null == fixedmeta) {
     if (null == delegate) {
       return respond('ERROR: delegate not found: ' + name)
     }
@@ -344,7 +341,7 @@ const DelegateCmd: Cmd = (spec: CmdSpec) => {
         }
       }
 
-      delegate = fromDelegate.delegate(fixedargs, fixedmeta)
+      delegate = fromDelegate.delegate(fixedmsg, fixedmeta)
       delegate.did = delegate.did + '~' + name
       context.delegate[name] = delegate
     }

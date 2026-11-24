@@ -7,36 +7,38 @@ themselves are described in the Seneca
 
 ## 1. Update Node.js and the packages
 
-Seneca 4 needs Node.js 22 or later. Use `@seneca/repl` 9.2 or later:
+Seneca 4 and `@seneca/repl` 10 need Node.js 24 or later. Use
+`@seneca/repl` 10, which supports Seneca 4 only:
 
 ```sh
-npm install seneca@4 @seneca/repl@latest
+npm install seneca@^4 @seneca/repl@^10
 ```
 
-While Seneca 4 is a prerelease, install `seneca@4.0.0-rc5` (or later)
-instead of `seneca@4`.
+A service that stays on Seneca 3 keeps `@seneca/repl` 9.
 
-Earlier versions of the plugin register their close hook on the
-Seneca 3 pattern `role:seneca,cmd:close`. Seneca 4.0.0-rc5 never calls
-it, so `seneca.close()` leaves the REPL port open and the process does
-not exit. Version 9.2 uses `sys:seneca,cmd:close` on Seneca 4.
+Version 9.1 and earlier do not load on Seneca 4.0.0: they build their
+option shape with Gubu, which Seneca 4.0.0 rejects with the fatal error
+`plugin_gubu_shape`. They also register their close hook on the Seneca 3
+pattern `role:seneca,cmd:close`. Version 10 builds its shape with the
+builders Seneca passes to `defaults`, and uses `sys:seneca,cmd:close`.
 
-The plugin does not need seneca-transport or seneca-promisify on either
-Seneca version: its TCP port is its own server.
+The plugin does not need seneca-transport or seneca-promisify: its TCP
+port is its own server, and promises are built into Seneca 4. Remove
+seneca-promisify and `use('promisify')` from the service.
 
 ## 2. Pass plugin options the Seneca 4 way
 
 Seneca 3 also read plugin options from a top level key named after the
 plugin. Seneca 4 reads them only from `use` and from `options.plugin`,
 and rejects the top level key when the instance is created
-(`GubuError: Validation failed for object ... because the property
+(`ShapeError: Validation failed for object ... because the property
 "repl" is not allowed.`):
 
 ```js
 // Seneca 3 only
 Seneca({ repl: { port: 0 } }).use('repl')
 
-// Seneca 3 and 4
+// Seneca 4
 Seneca().use('repl', { port: 0 })
 Seneca({ plugin: { repl: { port: 0 } } }).use('repl')
 ```
@@ -55,9 +57,11 @@ Seneca 4 calls its builtin actions `sys:seneca,...` instead of
 | `role:seneca,get:options` | `sys:seneca,get:options` |
 
 The `stats` and `stats full` aliases call `seneca.stats()`, which works
-on both. `list` shows the `sys:seneca` patterns on Seneca 4. Set the
+as before. `list` shows the `sys:seneca` patterns on Seneca 4. Set the
 Seneca option `legacy: { builtin_actions: true }` to keep the old names
-while you change scripts and habits.
+while you change scripts and habits; Seneca 4.0.0 reports a deprecation
+warning (`SENECA_DEP_ROLE_SENECA`) the first time each old name is
+called.
 
 ## 4. Expect the original errors
 
@@ -71,8 +75,7 @@ a Seneca error (`seneca: Action ... failed: ...`, with the original in
 
 `seneca.post`, `seneca.message` and promise returning `ready` and
 `close` are built into Seneca 4, so `await seneca.post(...)` works in a
-session without seneca-promisify. On Seneca 3 it needs seneca-promisify
-loaded in the service.
+session without seneca-promisify.
 
 ## 6. Check
 
@@ -83,6 +86,6 @@ loaded in the service.
 
 ## See also
 
-* [Seneca 3 and Seneca 4](../explanation/seneca-3-and-4.md): what the
-  plugin does differently on each version.
+* [Seneca 3 and Seneca 4](../explanation/seneca-3-and-4.md): how the
+  plugin works on Seneca 4, and what differs from Seneca 3.
 * [Change log](../../CHANGES.md).

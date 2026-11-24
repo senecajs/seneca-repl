@@ -156,8 +156,8 @@ argument is parsed with Jsonic, as a list:
 | Form | Effect |
 | ---- | ------ |
 | `delegate <name>` | Switch to an existing delegate: `repl$`, `root$`, or one you created. |
-| `delegate <name> <fixedargs> [<fixedmeta>]` | Create a delegate of the current one, with the fixed message properties `<fixedargs>` (and fixed meta data), store it as `<name>` and switch to it. Example: `delegate ops {channel:ops}`. |
-| `delegate <name> <from> <fixedargs> [<fixedmeta>]` | As above, but derive the new delegate from the named delegate `<from>`. |
+| `delegate <name> <fixedmsg> [<fixedmeta>]` | Create a delegate of the current one, with the fixed message properties `<fixedmsg>` (and fixed meta data), store it as `<name>` and switch to it. Example: `delegate ops {channel:ops}`. |
+| `delegate <name> <from> <fixedmsg> [<fixedmeta>]` | As above, but derive the new delegate from the named delegate `<from>`. |
 
 Errors: `ERROR: delegate not found: <name>`,
 `ERROR: delegate name reserved: <name>` (`repl$` and `root$` cannot be
@@ -166,9 +166,11 @@ created), `ERROR: delegate already exists: <name>`,
 
 ### Entity commands
 
-These need [seneca-entity](https://github.com/senecajs/seneca-entity).
-`<canon>` is an entity name: `name`, `base/name` or `zone/base/name`.
-The optional query or data is Jsonic.
+These need the entity plugin,
+[@seneca/entity](https://github.com/senecajs/seneca-entity) (published as
+seneca-entity up to version 28.1.0; seneca-entity 28 does not load on
+Seneca 4.0.0). `<canon>` is an entity name: `name`, `base/name` or
+`zone/base/name`. The optional query or data is Jsonic.
 
 | Command | Same as |
 | ------- | ------- |

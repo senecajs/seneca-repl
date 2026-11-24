@@ -11,9 +11,8 @@ const Seneca = require('seneca')
 
 Seneca({ legacy: false })
   .test('print')
-  .use('promisify')
   .use('..', { port: 20202 })
-  .use('entity', {
+  .use('@seneca/entity', {
     // hide: {
     //   '-/-/foo': ['c'],
     // },

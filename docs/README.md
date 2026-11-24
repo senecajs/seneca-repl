@@ -6,9 +6,9 @@ tutorials if you are new to the plugin; use the how-to guides for
 specific tasks; look things up in the reference; read the explanations
 to understand the design.
 
-The plugin gives a running Seneca service an interactive REPL. It works
-with Seneca 4 (4.0.0-rc5 and later) and Seneca 3 (3.38 tested), on
-Node.js 24 and 22.
+The plugin gives a running Seneca service an interactive REPL. Version
+10 works with Seneca 4, on Node.js 24 or later; for Seneca 3, use
+version 9.
 
 ## Tutorials
 
@@ -81,7 +81,7 @@ The plugin adds no decorations to the Seneca instance.
 | `sys:repl,add:cmd` | action pattern | [Messages](reference/messages.md#sysrepladdcmd) |
 | `sys:repl,echo:true` | action pattern | [Messages](reference/messages.md#sysreplechotrue) |
 | `role:seneca,plugin:init,init:repl` | init action (opens the TCP port) | [Messages: lifecycle](reference/messages.md#lifecycle-actions) |
-| `sys:seneca,cmd:close`, `role:seneca,cmd:close` | close prior | [Messages: lifecycle](reference/messages.md#lifecycle-actions), [Seneca 3 and 4](explanation/seneca-3-and-4.md#closing) |
+| `sys:seneca,cmd:close` | close prior | [Messages: lifecycle](reference/messages.md#lifecycle-actions), [Seneca 3 and 4](explanation/seneca-3-and-4.md#closing) |
 | `repl/address`, `repl$<tag>/address` | export | [Exports](reference/exports.md#repladdress) |
 | Plugin function, `defaults`, `errors`, `Cmds`, `intern` | module exports | [Exports](reference/exports.md#module-exports) |
 | `CmdSpec`, `Cmd` | TypeScript types | [Exports](reference/exports.md#typescript) |
